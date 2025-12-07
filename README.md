@@ -26,6 +26,20 @@ I wanted something that looked as good as the stock widgets on mobile phones—d
       * **Battery Saver:** Option to stop updating when the market is closed.
       * Weekend detection logic.
 
+## 🔍 How to Find Ticker Symbols
+
+This widget pulls data directly from **Yahoo Finance**, so you need to use the exact ticker symbol listed on their website.
+
+1.  Go to **[finance.yahoo.com](https://finance.yahoo.com)**.
+2.  Search for the company, crypto, or index you want (e.g., "Bitcoin", "Apple").
+3.  Copy the symbol shown in parentheses next to the name.
+
+**Examples:**
+* **US Stocks:** `AAPL`, `TSLA`, `MSFT`
+* **Cryptocurrency:** `BTC-USD`, `ETH-USD`, `DOGE-USD`
+* **Indices:** `^NSEI` (Nifty 50), `^GSPC` (S&P 500)
+* **Currencies:** `INR=X` (USD/INR), `EURUSD=X`
+
 ## ⚙️ Configuration Options
 
 You can right-click the widget and hit **"Configure..."** to tweak almost everything. Here is what you can change:
