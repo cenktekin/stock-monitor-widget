@@ -26,6 +26,8 @@ I wanted something that looked as good as the stock widgets on mobile phones—d
       * **Battery Saver:** Option to stop updating when the market is closed.
       * Weekend detection logic.
 
+<br>
+
 ## 🔍 How to Find Ticker Symbols
 
 This widget pulls data directly from **Yahoo Finance**, so you need to use the exact ticker symbol listed on their website.
@@ -39,6 +41,8 @@ This widget pulls data directly from **Yahoo Finance**, so you need to use the e
 * **Cryptocurrency:** `BTC-USD`, `ETH-USD`, `DOGE-USD`
 * **Indices:** `^NSEI` (Nifty 50), `^GSPC` (S&P 500)
 * **Currencies:** `INR=X` (USD/INR), `EURUSD=X`
+
+<br>
 
 ## ⚙️ Configuration Options
 
