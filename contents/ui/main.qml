@@ -30,6 +30,7 @@ PlasmoidItem {
     // Internal Properties for Single View
     property string singleCompanyName: "Loading..."
     property string currentPrice: "---"
+    property double currentRawPrice: 0.0
     property string priceChange: "+0.00"
     property string percentChange: "+0.00%"
     property var chartDataPoints: []
@@ -153,6 +154,7 @@ PlasmoidItem {
             root.previousClose = meta.chartPreviousClose;
             root.currencySym = getCurrencySymbol(meta.currency);
             root.currentPrice = root.currencySym + meta.regularMarketPrice.toFixed(2);
+            root.currentRawPrice = meta.regularMarketPrice.toFixed(0);
 
             var change = meta.regularMarketPrice - meta.chartPreviousClose;
             root.isPositive = change >= 0;
@@ -208,6 +210,12 @@ PlasmoidItem {
         } catch (e) { console.log("Error parsing multi: " + e); }
     }
 
+    // Force commas manually (e.g. 1234567 -> "1,234,567")
+    function formatWithCommas(amount) {
+        // Round to integer first, then add commas
+        return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
     onSingleTickerChanged: refreshData()
     onIsMultiModeChanged: { stockModel.clear(); refreshData(); }
     onMultiTickersChanged: { stockModel.clear(); refreshData(); }
@@ -234,7 +242,7 @@ PlasmoidItem {
         RowLayout {
             id: panelLayout
             anchors.fill: parent
-            spacing: 4 // Space between Icon and the Text Stack
+            spacing: 4
 
             // Stacked Text Column
             ColumnLayout {
@@ -253,7 +261,7 @@ PlasmoidItem {
 
                 // 2. Bottom: Current Price (Colored)
                 Text {
-                    text: root.currentPrice
+                    text: root.currencySym + formatWithCommas(root.currentRawPrice)
                     color: root.isPositive ? root.positiveColor : root.negativeColor
                     // font.bold: true
                     font.pixelSize: 12
