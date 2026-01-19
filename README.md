@@ -5,7 +5,7 @@ This is a clean, modern stock market widget for KDE Plasma 6. It pulls data dire
 ## ✨ Latest Enhancements
 
 - **Modern Badge UI:** Redesigned compact panel view with sleek, semi-transparent percentage badges for better readability.
-- **Customizable Neon Colors:** Added a built-in **Color Picker** in settings to customize gain and loss colors.
+- **Custom Gain/Loss Colors:** Added a built-in **Color Picker** in settings to customize gain and loss colors.
 - **Improved Data Precision:** Enhanced price display with 2-decimal accuracy and integrated change percentages.
 - **High Visibility:** Forced theme-independent colors to ensure visibility on all desktop backgrounds.
 

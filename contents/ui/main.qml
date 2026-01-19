@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
+import org.kde.kirigami as Kirigami
 
 PlasmoidItem {
     id: root
@@ -237,7 +238,7 @@ PlasmoidItem {
     // --- PANEL VIEW (Compact Representation) ---
     compactRepresentation: MouseArea {
         id: compactRoot
-        implicitWidth: panelRow.implicitWidth + 16
+        implicitWidth: panelRow.implicitWidth + (Kirigami.Units.smallSpacing * 4)
         implicitHeight: panelRow.implicitHeight
         width: implicitWidth
         height: implicitHeight
@@ -286,15 +287,22 @@ PlasmoidItem {
                         color: root.isPositive ? root.positiveColor : root.negativeColor
                         font.pixelSize: 11
                         font.weight: Font.Bold
+                        // Ensure the price text is fully opaque; color is controlled by the line above
+                        opacity: 1.0
                     }
 
                     Rectangle {
                         radius: 4
-                        color: root.isPositive ? "#053305" : "#330505"
+                        // Vertical Panel Support: Hide badge in vertical panels to avoid overlap
+                        visible: Plasmoid.formFactor !== PlasmaCore.Types.Vertical
+                        // Background: translucent tint of the positive/negative color for theme independence
+                        color: root.isPositive
+                               ? Qt.rgba(root.positiveColor.r, root.positiveColor.g, root.positiveColor.b, 0.18)
+                               : Qt.rgba(root.negativeColor.r, root.negativeColor.g, root.negativeColor.b, 0.18)
                         border.color: root.isPositive ? root.positiveColor : root.negativeColor
                         border.width: 1
-                        Layout.preferredWidth: pctText2.implicitWidth + 8
-                        Layout.preferredHeight: pctText2.implicitHeight + 2
+                        Layout.preferredWidth: pctText2.implicitWidth + (Kirigami.Units.smallSpacing * 2)
+                        Layout.preferredHeight: pctText2.implicitHeight + (Kirigami.Units.smallSpacing / 2)
                         
                         Text {
                             id: pctText2
@@ -376,9 +384,7 @@ PlasmoidItem {
                                     font.pixelSize: 15
                                     font.family: "Arial"
                                     Layout.alignment: Qt.AlignVCenter
-                                    // Add this to prevent it from being too long
                                     elide: Text.ElideRight
-                                    // Layout.maximumWidth: 120
                                     Layout.fillWidth: true
                                 }
                             }
@@ -518,11 +524,26 @@ PlasmoidItem {
                                 font.pixelSize: 14
                                 Layout.alignment: Qt.AlignRight
                             }
-                            Text {
-                                text: model.change + " (" + model.pct + ")"
-                                color: model.isPos ? root.positiveColor : root.negativeColor
-                                font.pixelSize: 11
+                            Rectangle {
+                                radius: 4
+                                // Background: translucent tint of the color for theme independence
+                                color: model.isPos
+                                       ? Qt.rgba(root.positiveColor.r, root.positiveColor.g, root.positiveColor.b, 0.15)
+                                       : Qt.rgba(root.negativeColor.r, root.negativeColor.g, root.negativeColor.b, 0.15)
+                                border.color: model.isPos ? root.positiveColor : root.negativeColor
+                                border.width: 1
+                                Layout.preferredWidth: pctTextL.implicitWidth + (Kirigami.Units.smallSpacing * 2)
+                                Layout.preferredHeight: pctTextL.implicitHeight + (Kirigami.Units.smallSpacing / 2)
                                 Layout.alignment: Qt.AlignRight
+
+                                Text {
+                                    id: pctTextL
+                                    anchors.centerIn: parent
+                                    text: model.change + " (" + model.pct + ")"
+                                    color: model.isPos ? root.positiveColor : root.negativeColor
+                                    font.pixelSize: 11
+                                    font.weight: Font.Black
+                                }
                             }
                         }
                     }

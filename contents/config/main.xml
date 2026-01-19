@@ -45,7 +45,7 @@
         </entry>
         <entry name="positiveColor" type="Color">
             <label>Positive Change Color</label>
-            <default>#00FF00</default>
+            <default>#4cd964</default>
         </entry>
         <entry name="negativeColor" type="Color">
             <label>Negative Change Color</label>
