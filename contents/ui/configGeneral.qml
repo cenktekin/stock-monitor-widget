@@ -11,20 +11,17 @@ Item {
     property alias cfg_isMultiMode: modeSwitch.checked
     property alias cfg_multiTickers: multiListField.text
 
-    // Aliases for new time settings
+    // Aliases for new settings
     property alias cfg_limitHours: limitHoursSwitch.checked
     property alias cfg_startHour: startHourSpin.value
     property alias cfg_startMinute: startMinuteSpin.value
     property alias cfg_endHour: endHourSpin.value
     property alias cfg_endMinute: endMinuteSpin.value
-    property alias cfg_positiveColor: posColorButton.color
-    property alias cfg_negativeColor: negColorButton.color
+    property alias cfg_positiveColor: posColorButton.text
+    property alias cfg_negativeColor: negColorButton.text
 
-    // 3. CHART RANGE SYNC
-    // We define this as a string property to hold the text "1D", "5D", etc.
     property string cfg_chartRange
 
-    // When the config loads (or changes), force the ComboBox to match
     onCfg_chartRangeChanged: {
         var idx = rangeCombo.indexOfValue(cfg_chartRange)
         if (idx >= 0) rangeCombo.currentIndex = idx
@@ -58,16 +55,11 @@ Item {
             Layout.minimumHeight: 60
         }
 
-        // --- CHART RANGE COMBOBOX ---
         ComboBox {
             id: rangeCombo
             Kirigami.FormData.label: "Data Range:"
             model: ["1D", "5D", "1M", "6M", "YTD", "1Y", "5Y", "Max"]
-
-            // 1. Write to config when user selects
             onActivated: configPage.cfg_chartRange = currentText
-
-            // 2. Read from config when window opens
             Component.onCompleted: {
                 var idx = indexOfValue(configPage.cfg_chartRange)
                 if (idx >= 0) currentIndex = idx
@@ -78,11 +70,9 @@ Item {
             id: intervalSpin
             Kirigami.FormData.label: "Refresh Interval (minutes):"
             from: 1
-            to: 360    // Allow up to 6 hours
-            stepSize: 1
+            to: 360
         }
 
-        // --- NEW TIME SECTION ---
         CheckBox {
             id: limitHoursSwitch
             Kirigami.FormData.label: "Active Hours:"
@@ -105,18 +95,21 @@ Item {
             SpinBox { id: endMinuteSpin; from: 0; to: 59; }
         }
 
-        Item { Kirigami.FormData.isSection: true; Kirigami.FormData.label: "Colors" }
-
-        Kirigami.ColorButton {
-            id: posColorButton
-            Kirigami.FormData.label: "Positive Color:"
-            Layout.preferredWidth: Kirigami.Units.gridUnit * 5
+        Item {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: "Colors"
         }
 
-        Kirigami.ColorButton {
+        TextField {
+            id: posColorButton
+            Kirigami.FormData.label: "Positive Color (Hex):"
+            placeholderText: "#00ff00"
+        }
+
+        TextField {
             id: negColorButton
-            Kirigami.FormData.label: "Negative Color:"
-            Layout.preferredWidth: Kirigami.Units.gridUnit * 5
+            Kirigami.FormData.label: "Negative Color (Hex):"
+            placeholderText: "#ff3b30"
         }
     }
 }
