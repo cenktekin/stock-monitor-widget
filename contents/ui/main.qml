@@ -222,6 +222,9 @@ PlasmoidItem {
     // CHANGED: Update when range changes
     onChartRangeChanged: { stockModel.clear(); refreshData(); }
 
+    // --- CUSTOM TOOLTIP ---
+    // Tooltip removed due to compatibility issues across some Plasma 6 versions
+
     Timer {
         interval: Plasmoid.configuration.refreshInterval * 60000
         running: true
@@ -234,23 +237,28 @@ PlasmoidItem {
     // --- PANEL VIEW (Compact Representation) ---
     compactRepresentation: MouseArea {
         id: compactRoot
-        Layout.minimumWidth: panelLayout.implicitWidth + 12
-        Layout.minimumHeight: panelLayout.implicitHeight
-
-        onClicked: Plasmoid.expanded = !Plasmoid.expanded
+        implicitWidth: panelRow.implicitWidth + 16
+        implicitHeight: panelRow.implicitHeight
+        width: implicitWidth
+        height: implicitHeight
+        
+        // Essential for Plasma to allocate space and prevent overlap
+        Layout.minimumWidth: implicitWidth
+        Layout.preferredWidth: implicitWidth
+        
+        onClicked: {
+            root.expanded = !root.expanded;
+        }
 
         RowLayout {
-            id: panelLayout
-            anchors.fill: parent
-            anchors.leftMargin: 4
-            anchors.rightMargin: 4
+            id: panelRow
+            anchors.centerIn: parent
             spacing: 8
-
+            
             ColumnLayout {
                 spacing: -2
                 Layout.alignment: Qt.AlignVCenter
 
-                // 1. Ticker Name & Trend Arrow
                 RowLayout {
                     spacing: 4
                     Text {
@@ -269,7 +277,6 @@ PlasmoidItem {
                     }
                 }
 
-                // 2. Price & Percentage Badge
                 RowLayout {
                     spacing: 6
                     Layout.alignment: Qt.AlignLeft
@@ -277,30 +284,25 @@ PlasmoidItem {
                     Text {
                         text: root.currencySym + formatWithCommas(root.currentRawPrice)
                         color: root.isPositive ? root.positiveColor : root.negativeColor
-                        font.pixelSize: 12
+                        font.pixelSize: 11
                         font.weight: Font.Bold
-                        // FORCE COLOR: This prevents the theme from making it white/gray
-                        opacity: 1.0
                     }
 
-                    // Percentage Badge
                     Rectangle {
                         radius: 4
-                        // Background is slightly darker version of the color to make the text pop
                         color: root.isPositive ? "#053305" : "#330505"
                         border.color: root.isPositive ? root.positiveColor : root.negativeColor
                         border.width: 1
-                        Layout.preferredWidth: pctText.implicitWidth + 8
-                        Layout.preferredHeight: pctText.implicitHeight + 2
+                        Layout.preferredWidth: pctText2.implicitWidth + 8
+                        Layout.preferredHeight: pctText2.implicitHeight + 2
                         
                         Text {
-                            id: pctText
+                            id: pctText2
                             anchors.centerIn: parent
                             text: root.percentChange
                             color: root.isPositive ? root.positiveColor : root.negativeColor
                             font.pixelSize: 10
                             font.weight: Font.Black
-                            opacity: 1.0
                         }
                     }
                 }
@@ -335,11 +337,20 @@ PlasmoidItem {
                 id: singleView
                 visible: !root.isMultiMode
                 anchors.fill: parent
-                // anchors.margins: 16
                 anchors.leftMargin: 16
                 anchors.rightMargin: 16
                 anchors.topMargin: 16
                 anchors.bottomMargin: 10
+
+                MouseArea {
+                    anchors.fill: parent
+                    z: 100 // Ensure it's on top of everything
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        console.log("Opening URL: " + root.singleTicker);
+                        Qt.openUrlExternally("https://finance.yahoo.com/quote/" + root.singleTicker);
+                    }
+                }
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -440,6 +451,17 @@ PlasmoidItem {
                 delegate: Item {
                     width: multiView.width
                     height: 60
+
+                    MouseArea {
+                        anchors.fill: parent
+                        z: 100 // Above the row layout
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            console.log("Opening URL: " + model.ticker);
+                            Qt.openUrlExternally("https://finance.yahoo.com/quote/" + model.ticker);
+                        }
+                    }
+
                     RowLayout {
                         anchors.fill: parent
                         spacing: 10
