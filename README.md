@@ -1,30 +1,23 @@
 # Stock Market Monitor for KDE Plasma 6
 
-This is a clean, modern stock market widget I built for KDE Plasma 6.
+This is a clean, modern stock market widget for KDE Plasma 6. It pulls data directly from Yahoo Finance, covering stocks, crypto, and currencies worldwide.
 
-I wanted something that looked as good as the stock widgets on mobile phones—dark mode, smooth gradients, and easy to read—but right on my Linux desktop. It pulls data directly from Yahoo Finance, so you get coverage for stocks, crypto, and currencies from all over the world.
-<p align="center">
-    <a href="https://www.pling.com/p/2332661/">
-        <img src="https://img.shields.io/badge/KDE_Store-Download-blue?style=for-the-badge&logo=kde" alt="KDE Store Collection">
-    </a>
-    <a href="https://ko-fi.com/vsh07">
-        <img src="https://img.shields.io/badge/Buy_me_a_Kofi-donate-blue?style=for-the-badge&logo=kofi&color=%23FF6433" alt="Support on Ko-fi">
-    </a>
-</p>
+## ✨ Latest Enhancements
 
-![Widget Preview](screenshots/main.png)
+- **Modern Badge UI:** Redesigned compact panel view with sleek, semi-transparent percentage badges for better readability.
+- **Customizable Neon Colors:** Added a built-in **Color Picker** in settings to customize gain and loss colors.
+- **Improved Data Precision:** Enhanced price display with 2-decimal accuracy and integrated change percentages.
+- **High Visibility:** Forced theme-independent colors to ensure visibility on all desktop backgrounds.
 
-## ✨ Features
+## 🚀 Features
 
-  * **Two Display Modes:**
-      * **Single View:** Focus on one specific stock with a large price display, detailed chart, and company name.
-      * **Multi-Stock List:** A compact list of multiple stocks to see trends at a glance.
-  * **Beautiful Charts:** Smooth, gradient-filled charts that change color (Green/Red) based on performance.
-  * **Data Ranges:** View history from 1 Day (1D) all the way up to 5 Years (5Y) or Max.
-  * **Smart & Efficient:**
-      * Automatic "Previous Close" dashed line.
-      * **Battery Saver:** Option to stop updating when the market is closed.
-      * Weekend detection logic.
+- **Two Display Modes:** Single View and Multi-Stock List.
+- **Beautiful Charts:** Smooth, gradient-filled charts that change color (Green/Red) based on performance.
+- **Data Ranges:** View history from 1 Day (1D) up to 5 Years (5Y) or Max.
+- **Smart & Efficient:**
+  - Automatic "Previous Close" dashed line.
+  - **Battery Saver:** Option to stop updating when the market is closed.
+  - Weekend detection logic.
 
 <br>
 
@@ -37,10 +30,11 @@ This widget pulls data directly from **Yahoo Finance**, so you need to use the e
 3.  Copy the symbol shown in parentheses next to the name.
 
 **Examples:**
-* **US Stocks:** `AAPL`, `TSLA`, `MSFT`
-* **Cryptocurrency:** `BTC-USD`, `ETH-USD`, `DOGE-USD`
-* **Indices:** `^NSEI` (Nifty 50), `^GSPC` (S&P 500)
-* **Currencies:** `INR=X` (USD/INR), `EURUSD=X`
+
+- **US Stocks:** `AAPL`, `TSLA`, `MSFT`
+- **Cryptocurrency:** `BTC-USD`, `ETH-USD`, `DOGE-USD`
+- **Indices:** `^NSEI` (Nifty 50), `^GSPC` (S&P 500)
+- **Currencies:** `INR=X` (USD/INR), `EURUSD=X`
 
 <br>
 
@@ -50,19 +44,19 @@ You can right-click the widget and hit **"Configure..."** to tweak almost everyt
 
 ### 1\. General Settings
 
-  * **Display Mode:** Toggle between showing one big stock or a list of many.
-  * **Single Ticker:** If you are in Single Mode, type the symbol here (e.g., `AAPL`, `BTC-USD`, `GOOG`).
-  * **Ticker List:** If you are in Multi-Mode, enter a comma-separated list here (e.g., `TSLA, MSFT, GOOG`).
-  * **Data Range:** Choose the data range for stocks (`1D`, `5D`, `1M`, `6M`, `YTD`, `1Y`, `5Y`, `Max`).
+- **Display Mode:** Toggle between showing one big stock or a list of many.
+- **Single Ticker:** If you are in Single Mode, type the symbol here (e.g., `AAPL`, `BTC-USD`, `GOOG`).
+- **Ticker List:** If you are in Multi-Mode, enter a comma-separated list here (e.g., `TSLA, MSFT, GOOG`).
+- **Data Range:** Choose the data range for stocks (`1D`, `5D`, `1M`, `6M`, `YTD`, `1Y`, `5Y`, `Max`).
 
 ### 2\. Updates & Interval
 
-  * **Refresh Interval:** How often the data updates (in Minutes). Default is 5 minutes.
+- **Refresh Interval:** How often the data updates (in Minutes). Default is 5 minutes.
 
 ### 3\. Active Hours (Battery Saver)
 
-  * **Only update during market hours:** Check this to prevent the widget from waking up your network when the stock market is closed.
-  * **Market Open/Close:** Set the start and end time (e.g., 09:15 to 15:30) matching your local stock exchange time.
+- **Only update during market hours:** Check this to prevent the widget from waking up your network when the stock market is closed.
+- **Market Open/Close:** Set the start and end time (e.g., 09:15 to 15:30) matching your local stock exchange time.
 
 ![Config 1](screenshots/config1.png)
 ![Config 2](screenshots/config2.png)
@@ -71,7 +65,6 @@ You can right-click the widget and hit **"Configure..."** to tweak almost everyt
 
 ### From KDE Store
 
-  * Right-click Desktop -\> **Add Widgets**.
-  * Click **"Get New Widgets"**.
-  * Search for "Stock Monitor" and hit Install.
-
+- Right-click Desktop -\> **Add Widgets**.
+- Click **"Get New Widgets"**.
+- Search for "Stock Monitor" and hit Install.

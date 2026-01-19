@@ -1,19 +1,23 @@
 {
-    "KPackageStructure": "Plasma/Applet",
-    "KPlugin": {
-        "Authors": [
-            {
-                "Name": "vps",
-                "Email": ""
-            }
-        ],
-        "Name": "Stock Monitor",
-        "Description": "Displays stock charts using Yahoo Finance.",
-        "Icon": "/icon.png",
-        "Id": "com.vps.stockmonitor",
-        "Version": "1.0",
-        "Website": "https://github.com/vpsone/stock-monitor-widget",
-        "License": "GPL-3.0+"
-    },
-    "X-Plasma-API-Minimum-Version": "6.0"
+  "KPackageStructure": "Plasma/Applet",
+  "KPlugin": {
+    "Authors": [
+      {
+        "Name": "vps",
+        "Email": ""
+      },
+      {
+        "Name": "Cenk Tekin",
+        "Email": ""
+      }
+    ],
+    "Name": "Stock Monitor",
+    "Description": "Modernized stock monitor for KDE with badge UI and custom colors.",
+    "Icon": "/icon.png",
+    "Id": "com.vps.stockmonitor",
+    "Version": "1.1",
+    "Website": "https://github.com/vpsone/stock-monitor-widget",
+    "License": "GPL-3.0+"
+  },
+  "X-Plasma-API-Minimum-Version": "6.0"
 }

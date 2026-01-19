@@ -17,6 +17,8 @@ Item {
     property alias cfg_startMinute: startMinuteSpin.value
     property alias cfg_endHour: endHourSpin.value
     property alias cfg_endMinute: endMinuteSpin.value
+    property alias cfg_positiveColor: posColorButton.color
+    property alias cfg_negativeColor: negColorButton.color
 
     // 3. CHART RANGE SYNC
     // We define this as a string property to hold the text "1D", "5D", etc.
@@ -101,6 +103,20 @@ Item {
             SpinBox { id: endHourSpin; from: 0; to: 23; }
             Label { text: ":" }
             SpinBox { id: endMinuteSpin; from: 0; to: 59; }
+        }
+
+        Item { Kirigami.FormData.isSection: true; Kirigami.FormData.label: "Colors" }
+
+        Kirigami.ColorButton {
+            id: posColorButton
+            Kirigami.FormData.label: "Positive Color:"
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 5
+        }
+
+        Kirigami.ColorButton {
+            id: negColorButton
+            Kirigami.FormData.label: "Negative Color:"
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 5
         }
     }
 }

@@ -38,8 +38,8 @@ PlasmoidItem {
     property bool isPositive: true
     property string currencySym: ""
 
-    property color positiveColor: "#4cd964"
-    property color negativeColor: "#ff3b30"
+    property color positiveColor: Plasmoid.configuration.positiveColor
+    property color negativeColor: Plasmoid.configuration.negativeColor
     property color bgColor: "#1a1a1a"
 
     ListModel { id: stockModel }
@@ -154,7 +154,7 @@ PlasmoidItem {
             root.previousClose = meta.chartPreviousClose;
             root.currencySym = getCurrencySymbol(meta.currency);
             root.currentPrice = root.currencySym + meta.regularMarketPrice.toFixed(2);
-            root.currentRawPrice = meta.regularMarketPrice.toFixed(0);
+            root.currentRawPrice = meta.regularMarketPrice.toFixed(2);
 
             var change = meta.regularMarketPrice - meta.chartPreviousClose;
             root.isPositive = change >= 0;
@@ -234,7 +234,7 @@ PlasmoidItem {
     // --- PANEL VIEW (Compact Representation) ---
     compactRepresentation: MouseArea {
         id: compactRoot
-        Layout.minimumWidth: panelLayout.implicitWidth
+        Layout.minimumWidth: panelLayout.implicitWidth + 12
         Layout.minimumHeight: panelLayout.implicitHeight
 
         onClicked: Plasmoid.expanded = !Plasmoid.expanded
@@ -242,31 +242,67 @@ PlasmoidItem {
         RowLayout {
             id: panelLayout
             anchors.fill: parent
-            spacing: 4
+            anchors.leftMargin: 4
+            anchors.rightMargin: 4
+            spacing: 8
 
-            // Stacked Text Column
             ColumnLayout {
+                spacing: -2
                 Layout.alignment: Qt.AlignVCenter
-                spacing: -1 // Negative spacing keeps them tight together in the panel
 
-                // 1. Top: Ticker Name (Small)
-                Text {
-                    text: root.singleTicker
-                    color: PlasmaCore.Theme.textColor
-                    font.pixelSize: 8   // Small font
-                    opacity: 0.8        // Slightly dimmed
-                    visible: Plasmoid.formFactor === PlasmaCore.Types.Horizontal
-                    Layout.alignment: Qt.AlignLeft
+                // 1. Ticker Name & Trend Arrow
+                RowLayout {
+                    spacing: 4
+                    Text {
+                        text: root.singleTicker.toUpperCase()
+                        color: PlasmaCore.Theme.textColor
+                        font.pixelSize: 9
+                        font.weight: Font.Bold
+                        opacity: 0.6
+                        Layout.alignment: Qt.AlignBottom
+                    }
+                    Text {
+                        text: root.isPositive ? "▲" : "▼"
+                        color: root.isPositive ? root.positiveColor : root.negativeColor
+                        font.pixelSize: 8
+                        font.weight: Font.Bold
+                    }
                 }
 
-                // 2. Bottom: Current Price (Colored)
-                Text {
-                    text: root.currencySym + formatWithCommas(root.currentRawPrice)
-                    color: root.isPositive ? root.positiveColor : root.negativeColor
-                    // font.bold: true
-                    font.pixelSize: 12
-                    visible: Plasmoid.formFactor === PlasmaCore.Types.Horizontal
+                // 2. Price & Percentage Badge
+                RowLayout {
+                    spacing: 6
                     Layout.alignment: Qt.AlignLeft
+                    
+                    Text {
+                        text: root.currencySym + formatWithCommas(root.currentRawPrice)
+                        color: root.isPositive ? root.positiveColor : root.negativeColor
+                        font.pixelSize: 12
+                        font.weight: Font.Bold
+                        // FORCE COLOR: This prevents the theme from making it white/gray
+                        opacity: 1.0
+                    }
+
+                    // Percentage Badge
+                    Rectangle {
+                        radius: 4
+                        // Background is slightly darker version of the color to make the text pop
+                        color: root.isPositive ? "#053305" : "#330505"
+                        border.color: root.isPositive ? root.positiveColor : root.negativeColor
+                        border.width: 1
+                        Layout.preferredWidth: pctText.implicitWidth + 8
+                        Layout.preferredHeight: pctText.implicitHeight + 2
+                        
+                        Text {
+                            id: pctText
+                            anchors.centerIn: parent
+                            text: root.percentChange
+                            color: root.isPositive ? root.positiveColor : root.negativeColor
+                            font.pixelSize: 10
+                            font.weight: Font.Black
+                            opacity: 1.0
+                        }
+                    }
                 }
             }
         }
@@ -461,7 +497,7 @@ PlasmoidItem {
                                 Layout.alignment: Qt.AlignRight
                             }
                             Text {
-                                text: model.change
+                                text: model.change + " (" + model.pct + ")"
                                 color: model.isPos ? root.positiveColor : root.negativeColor
                                 font.pixelSize: 11
                                 Layout.alignment: Qt.AlignRight
