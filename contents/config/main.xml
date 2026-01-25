@@ -43,5 +43,13 @@
         <entry name="endMinute" type="Int">
             <default>30</default>
         </entry>
+        <entry name="positiveColor" type="Color">
+            <label>Positive Change Color</label>
+            <default>#4cd964</default>
+        </entry>
+        <entry name="negativeColor" type="Color">
+            <label>Negative Change Color</label>
+            <default>#FF3B30</default>
+        </entry>
     </group>
 </kcfg>

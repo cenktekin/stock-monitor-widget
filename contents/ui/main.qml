@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
+import org.kde.kirigami as Kirigami
 
 PlasmoidItem {
     id: root
@@ -38,8 +39,8 @@ PlasmoidItem {
     property bool isPositive: true
     property string currencySym: ""
 
-    property color positiveColor: "#4cd964"
-    property color negativeColor: "#ff3b30"
+    property color positiveColor: Plasmoid.configuration.positiveColor
+    property color negativeColor: Plasmoid.configuration.negativeColor
     property color bgColor: "#1a1a1a"
 
     ListModel { id: stockModel }
@@ -154,7 +155,7 @@ PlasmoidItem {
             root.previousClose = meta.chartPreviousClose;
             root.currencySym = getCurrencySymbol(meta.currency);
             root.currentPrice = root.currencySym + meta.regularMarketPrice.toFixed(2);
-            root.currentRawPrice = meta.regularMarketPrice.toFixed(0);
+            root.currentRawPrice = meta.regularMarketPrice.toFixed(2);
 
             var change = meta.regularMarketPrice - meta.chartPreviousClose;
             root.isPositive = change >= 0;
@@ -222,6 +223,9 @@ PlasmoidItem {
     // CHANGED: Update when range changes
     onChartRangeChanged: { stockModel.clear(); refreshData(); }
 
+    // --- CUSTOM TOOLTIP ---
+    // Tooltip removed due to compatibility issues across some Plasma 6 versions
+
     Timer {
         interval: Plasmoid.configuration.refreshInterval * 60000
         running: true
@@ -234,39 +238,81 @@ PlasmoidItem {
     // --- PANEL VIEW (Compact Representation) ---
     compactRepresentation: MouseArea {
         id: compactRoot
-        Layout.minimumWidth: panelLayout.implicitWidth
-        Layout.minimumHeight: panelLayout.implicitHeight
-
-        onClicked: Plasmoid.expanded = !Plasmoid.expanded
+        implicitWidth: panelRow.implicitWidth + (Kirigami.Units.smallSpacing * 4)
+        implicitHeight: panelRow.implicitHeight
+        width: implicitWidth
+        height: implicitHeight
+        
+        // Essential for Plasma to allocate space and prevent overlap
+        Layout.minimumWidth: implicitWidth
+        Layout.preferredWidth: implicitWidth
+        
+        onClicked: {
+            root.expanded = !root.expanded;
+        }
 
         RowLayout {
-            id: panelLayout
-            anchors.fill: parent
-            spacing: 4
-
-            // Stacked Text Column
+            id: panelRow
+            anchors.centerIn: parent
+            spacing: 8
+            
             ColumnLayout {
+                spacing: -2
                 Layout.alignment: Qt.AlignVCenter
-                spacing: -1 // Negative spacing keeps them tight together in the panel
 
-                // 1. Top: Ticker Name (Small)
-                Text {
-                    text: root.singleTicker
-                    color: PlasmaCore.Theme.textColor
-                    font.pixelSize: 8   // Small font
-                    opacity: 0.8        // Slightly dimmed
-                    visible: Plasmoid.formFactor === PlasmaCore.Types.Horizontal
-                    Layout.alignment: Qt.AlignLeft
+                RowLayout {
+                    spacing: 4
+                    Text {
+                        text: root.singleTicker.toUpperCase()
+                        color: PlasmaCore.Theme.textColor
+                        font.pixelSize: 9
+                        font.weight: Font.Bold
+                        opacity: 0.6
+                        Layout.alignment: Qt.AlignBottom
+                    }
+                    Text {
+                        text: root.isPositive ? "▲" : "▼"
+                        color: root.isPositive ? root.positiveColor : root.negativeColor
+                        font.pixelSize: 8
+                        font.weight: Font.Bold
+                    }
                 }
 
-                // 2. Bottom: Current Price (Colored)
-                Text {
-                    text: root.currencySym + formatWithCommas(root.currentRawPrice)
-                    color: root.isPositive ? root.positiveColor : root.negativeColor
-                    // font.bold: true
-                    font.pixelSize: 12
-                    visible: Plasmoid.formFactor === PlasmaCore.Types.Horizontal
+                RowLayout {
+                    spacing: 6
                     Layout.alignment: Qt.AlignLeft
+                    
+                    Text {
+                        text: root.currencySym + formatWithCommas(root.currentRawPrice)
+                        color: root.isPositive ? root.positiveColor : root.negativeColor
+                        font.pixelSize: 11
+                        font.weight: Font.Bold
+                        // Ensure the price text is fully opaque; color is controlled by the line above
+                        opacity: 1.0
+                    }
+
+                    Rectangle {
+                        radius: 4
+                        // Vertical Panel Support: Hide badge in vertical panels to avoid overlap
+                        visible: Plasmoid.formFactor !== PlasmaCore.Types.Vertical
+                        // Background: translucent tint of the positive/negative color for theme independence
+                        color: root.isPositive
+                               ? Qt.rgba(root.positiveColor.r, root.positiveColor.g, root.positiveColor.b, 0.18)
+                               : Qt.rgba(root.negativeColor.r, root.negativeColor.g, root.negativeColor.b, 0.18)
+                        border.color: root.isPositive ? root.positiveColor : root.negativeColor
+                        border.width: 1
+                        Layout.preferredWidth: pctText2.implicitWidth + (Kirigami.Units.smallSpacing * 2)
+                        Layout.preferredHeight: pctText2.implicitHeight + (Kirigami.Units.smallSpacing / 2)
+                        
+                        Text {
+                            id: pctText2
+                            anchors.centerIn: parent
+                            text: root.percentChange
+                            color: root.isPositive ? root.positiveColor : root.negativeColor
+                            font.pixelSize: 10
+                            font.weight: Font.Black
+                        }
+                    }
                 }
             }
         }
@@ -299,11 +345,20 @@ PlasmoidItem {
                 id: singleView
                 visible: !root.isMultiMode
                 anchors.fill: parent
-                // anchors.margins: 16
                 anchors.leftMargin: 16
                 anchors.rightMargin: 16
                 anchors.topMargin: 16
                 anchors.bottomMargin: 10
+
+                MouseArea {
+                    anchors.fill: parent
+                    z: 100 // Ensure it's on top of everything
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        console.log("Opening URL: " + root.singleTicker);
+                        Qt.openUrlExternally("https://finance.yahoo.com/quote/" + root.singleTicker);
+                    }
+                }
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -329,9 +384,7 @@ PlasmoidItem {
                                     font.pixelSize: 15
                                     font.family: "Arial"
                                     Layout.alignment: Qt.AlignVCenter
-                                    // Add this to prevent it from being too long
                                     elide: Text.ElideRight
-                                    // Layout.maximumWidth: 120
                                     Layout.fillWidth: true
                                 }
                             }
@@ -404,6 +457,17 @@ PlasmoidItem {
                 delegate: Item {
                     width: multiView.width
                     height: 60
+
+                    MouseArea {
+                        anchors.fill: parent
+                        z: 100 // Above the row layout
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            console.log("Opening URL: " + model.ticker);
+                            Qt.openUrlExternally("https://finance.yahoo.com/quote/" + model.ticker);
+                        }
+                    }
+
                     RowLayout {
                         anchors.fill: parent
                         spacing: 10
@@ -460,11 +524,26 @@ PlasmoidItem {
                                 font.pixelSize: 14
                                 Layout.alignment: Qt.AlignRight
                             }
-                            Text {
-                                text: model.change
-                                color: model.isPos ? root.positiveColor : root.negativeColor
-                                font.pixelSize: 11
+                            Rectangle {
+                                radius: 4
+                                // Background: translucent tint of the color for theme independence
+                                color: model.isPos
+                                       ? Qt.rgba(root.positiveColor.r, root.positiveColor.g, root.positiveColor.b, 0.15)
+                                       : Qt.rgba(root.negativeColor.r, root.negativeColor.g, root.negativeColor.b, 0.15)
+                                border.color: model.isPos ? root.positiveColor : root.negativeColor
+                                border.width: 1
+                                Layout.preferredWidth: pctTextL.implicitWidth + (Kirigami.Units.smallSpacing * 2)
+                                Layout.preferredHeight: pctTextL.implicitHeight + (Kirigami.Units.smallSpacing / 2)
                                 Layout.alignment: Qt.AlignRight
+
+                                Text {
+                                    id: pctTextL
+                                    anchors.centerIn: parent
+                                    text: model.change + " (" + model.pct + ")"
+                                    color: model.isPos ? root.positiveColor : root.negativeColor
+                                    font.pixelSize: 11
+                                    font.weight: Font.Black
+                                }
                             }
                         }
                     }
