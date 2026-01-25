@@ -51,5 +51,9 @@
             <label>Negative Change Color</label>
             <default>#FF3B30</default>
         </entry>
+        <entry name="hideChangePercentage" type="Bool">
+            <label>Hide Stock Change Percentage (Panel View)</label>
+            <default>false</default>
+        </entry>
     </group>
 </kcfg>

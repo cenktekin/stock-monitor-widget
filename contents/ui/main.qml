@@ -41,6 +41,7 @@ PlasmoidItem {
 
     property color positiveColor: Plasmoid.configuration.positiveColor
     property color negativeColor: Plasmoid.configuration.negativeColor
+    property bool hideChangePercentage: Plasmoid.configuration.hideChangePercentage
     property color bgColor: "#1a1a1a"
 
     ListModel { id: stockModel }
@@ -294,7 +295,7 @@ PlasmoidItem {
                     Rectangle {
                         radius: 4
                         // Vertical Panel Support: Hide badge in vertical panels to avoid overlap
-                        visible: Plasmoid.formFactor !== PlasmaCore.Types.Vertical
+                        visible: Plasmoid.formFactor !== PlasmaCore.Types.Vertical && !root.hideChangePercentage
                         // Background: translucent tint of the positive/negative color for theme independence
                         color: root.isPositive
                                ? Qt.rgba(root.positiveColor.r, root.positiveColor.g, root.positiveColor.b, 0.18)

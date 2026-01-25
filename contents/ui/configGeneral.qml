@@ -19,6 +19,7 @@ Item {
     property alias cfg_endMinute: endMinuteSpin.value
     property alias cfg_positiveColor: posColorButton.text
     property alias cfg_negativeColor: negColorButton.text
+    property alias cfg_hideChangePercentage: hidePercentSwitch.checked
 
     property string cfg_chartRange
 
@@ -93,6 +94,17 @@ Item {
             SpinBox { id: endHourSpin; from: 0; to: 23; }
             Label { text: ":" }
             SpinBox { id: endMinuteSpin; from: 0; to: 59; }
+        }
+
+        Item {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: "Panel View"
+        }
+
+        CheckBox {
+            id: hidePercentSwitch
+            Kirigami.FormData.label: "Stock Change Percentage:"
+            text: "Toggle Visibility"
         }
 
         Item {
