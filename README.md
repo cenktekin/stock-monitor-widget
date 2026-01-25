@@ -1,6 +1,16 @@
 # Stock Market Monitor for KDE Plasma 6
 
 This is a clean, modern stock market widget for KDE Plasma 6. It pulls data directly from Yahoo Finance, covering stocks, crypto, and currencies worldwide.
+<p align="center">
+    <a href="https://www.pling.com/p/2332661/">
+        <img src="https://img.shields.io/badge/KDE_Store-Download-blue?style=for-the-badge&logo=kde" alt="KDE Store Collection">
+    </a>
+    <a href="https://ko-fi.com/vsh07">
+        <img src="https://img.shields.io/badge/Buy_me_a_Kofi-donate-blue?style=for-the-badge&logo=kofi&color=%23FF6433" alt="Support on Ko-fi">
+    </a>
+</p>
+
+![Widget Preview](screenshots/main.png)
 
 ## ✨ Latest Enhancements
 
