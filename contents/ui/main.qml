@@ -16,6 +16,10 @@ PlasmoidItem {
     : Plasmoid.FullRepresentation
 
 
+
+
+
+
     property string singleTicker: Plasmoid.configuration.ticker
     property bool isMultiMode: Plasmoid.configuration.isMultiMode
     property string multiTickers: Plasmoid.configuration.multiTickers
@@ -42,6 +46,8 @@ PlasmoidItem {
     property color positiveColor: Plasmoid.configuration.positiveColor
     property color negativeColor: Plasmoid.configuration.negativeColor
     property bool hideChangePercentage: Plasmoid.configuration.hideChangePercentage
+    property string lastUpdated: ""
+    property string nextUpdate: ""
     property color bgColor: "#1a1a1a"
 
     ListModel { id: stockModel }
@@ -183,6 +189,10 @@ PlasmoidItem {
                 }
             }
             root.chartDataPoints = cleanData;
+            var now = new Date();
+            root.lastUpdated = now.toLocaleTimeString(Qt.locale(), "HH:mm");
+            var next = new Date(now.getTime() + (Plasmoid.configuration.refreshInterval * 60000));
+            root.nextUpdate = next.toLocaleTimeString(Qt.locale(), "HH:mm");
         } catch (e) { console.log("Error parsing single: " + e); }
     }
 
@@ -236,6 +246,11 @@ PlasmoidItem {
             }
             if(!found) stockModel.append(itemData);
 
+            var now = new Date();
+            root.lastUpdated = now.toLocaleTimeString(Qt.locale(), "HH:mm");
+            var next = new Date(now.getTime() + (Plasmoid.configuration.refreshInterval * 60000));
+            root.nextUpdate = next.toLocaleTimeString(Qt.locale(), "HH:mm");
+
         } catch (e) { console.log("Error parsing multi: " + e); }
     }
 
@@ -275,8 +290,22 @@ PlasmoidItem {
         Layout.minimumWidth: implicitWidth
         Layout.preferredWidth: implicitWidth
         
-        onClicked: {
-            root.expanded = !root.expanded;
+        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+        onClicked: (mouse) => {
+            if (mouse.button === Qt.MiddleButton) {
+                // Visual feedback: brief flicker
+                if (priceText) priceText.opacity = 0.3;
+                root.refreshData();
+                timerFlicker.restart();
+            } else {
+                root.expanded = !root.expanded;
+            }
+        }
+
+        Timer {
+            id: timerFlicker
+            interval: 300
+            onTriggered: if (priceText) priceText.opacity = 1.0;
         }
 
         RowLayout {
@@ -382,9 +411,22 @@ PlasmoidItem {
                     anchors.fill: parent
                     z: 100 // Ensure it's on top of everything
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        console.log("Opening URL: " + root.singleTicker);
-                        Qt.openUrlExternally("https://finance.yahoo.com/quote/" + root.singleTicker);
+                    acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+                    onClicked: (mouse) => {
+                        if (mouse.button === Qt.MiddleButton) {
+                            if (priceText) priceText.opacity = 0.3;
+                            root.refreshData();
+                            timerFullFlicker.restart();
+                        } else {
+                            console.log("Opening URL: " + root.singleTicker);
+                            Qt.openUrlExternally("https://finance.yahoo.com/quote/" + root.singleTicker);
+                        }
+                    }
+
+                    Timer {
+                        id: timerFullFlicker
+                        interval: 300
+                        onTriggered: if (priceText) priceText.opacity = 1.0;
                     }
                 }
 
@@ -422,7 +464,12 @@ PlasmoidItem {
                                 font.pixelSize: 10
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
-                                // Layout.maximumWidth: 120
+                            }
+                            Text {
+                                text: (lastUpdated && nextUpdate) ? "Updated: " + lastUpdated + " • Next: " + nextUpdate : ""
+                                color: "#666666" // Slightly brighter
+                                font.pixelSize: 9
+                                visible: lastUpdated !== "" && !root.isMultiMode
                             }
                         }
                         Item { Layout.fillWidth: true }
@@ -460,11 +507,14 @@ PlasmoidItem {
                         }
                     }
                     Text {
+                        id: priceText
                         Layout.alignment: Qt.AlignHCenter
                         text: root.currentPrice
                         color: "white"
                         font.pixelSize: 26
                         font.weight: Font.bold
+
+                        Behavior on opacity { NumberAnimation { duration: 150 } }
                     }
                 }
             }
@@ -490,9 +540,21 @@ PlasmoidItem {
                         anchors.fill: parent
                         z: 100 // Above the row layout
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            console.log("Opening URL: " + model.ticker);
-                            Qt.openUrlExternally("https://finance.yahoo.com/quote/" + model.ticker);
+                        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+                        onClicked: (mouse) => {
+                            if (mouse.button === Qt.MiddleButton) {
+                                parent.opacity = 0.4;
+                                root.refreshData();
+                                timerListFlicker.restart();
+                            } else {
+                                console.log("Opening URL: " + model.ticker);
+                                Qt.openUrlExternally("https://finance.yahoo.com/quote/" + model.ticker);
+                            }
+                        }
+                        Timer {
+                            id: timerListFlicker
+                            interval: 300
+                            onTriggered: parent.opacity = 1.0;
                         }
                     }
 
@@ -584,6 +646,15 @@ PlasmoidItem {
                         visible: index < multiView.count - 1
                     }
                 }
+            }
+            Text {
+                anchors.bottom: parent.bottom
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottomMargin: 8
+                text: (lastUpdated && nextUpdate) ? "Updated: " + lastUpdated + " • Next: " + nextUpdate : ""
+                color: "#777777"
+                font.pixelSize: 10
+                visible: lastUpdated !== "" && root.isMultiMode
             }
         }
     }

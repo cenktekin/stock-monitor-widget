@@ -28,6 +28,35 @@ Item {
         if (idx >= 0) rangeCombo.currentIndex = idx
     }
 
+    function searchSymbols(query) {
+        if (query.length < 2) {
+            searchHelpText.text = "Type at least 2 characters...";
+            return;
+        }
+        var xhr = new XMLHttpRequest();
+        // Use query2 for search
+        var url = "https://query2.finance.yahoo.com/v1/finance/search?q=" + encodeURIComponent(query);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                try {
+                    var res = JSON.parse(xhr.responseText);
+                    var results = res.quotes || [];
+                    if (results.length === 0) {
+                        searchHelpText.text = "No symbols found.";
+                        return;
+                    }
+                    var displayStr = "Suggestions (Symbol - Name):\n";
+                    for (var i = 0; i < Math.min(results.length, 5); i++) {
+                        displayStr += "• " + results[i].symbol + " - " + (results[i].shortname || results[i].longname || "") + "\n";
+                    }
+                    searchHelpText.text = displayStr;
+                } catch (e) { searchHelpText.text = "Error searching."; }
+            }
+        }
+        xhr.open("GET", url);
+        xhr.send();
+    }
+
     Kirigami.FormLayout {
         anchors.left: parent.left
         anchors.right: parent.right
@@ -122,6 +151,34 @@ Item {
             id: negColorButton
             Kirigami.FormData.label: "Negative Color (Hex):"
             placeholderText: "#ff3b30"
+        }
+
+        Item {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: "Symbol Search Helper"
+        }
+
+        TextField {
+            id: searchField
+            Kirigami.FormData.label: "Quick Search:"
+            placeholderText: "e.g. Tesla, THY, NVIDIA..."
+            onTextChanged: searchTimer.restart()
+        }
+
+        Label {
+            id: searchHelpText
+            text: "Type to find symbols..."
+            font.pixelSize: 11
+            color: Kirigami.Theme.neutralTextColor
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
+        }
+
+        Timer {
+            id: searchTimer
+            interval: 800
+            repeat: false
+            onTriggered: configPage.searchSymbols(searchField.text)
         }
     }
 }
