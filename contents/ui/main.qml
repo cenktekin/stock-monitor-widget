@@ -52,7 +52,7 @@ PlasmoidItem {
 
         const symbols = {
             "USD": "$", "EUR": "€", "GBP": "£", "INR": "₹", "JPY": "¥",
-            "CNY": "¥", "KRW": "₩", "RUB": "₽"
+            "CNY": "¥", "KRW": "₩", "RUB": "₽", "TRY": "₺"
         };
         return symbols[code] || code + " ";
     }
@@ -62,7 +62,7 @@ PlasmoidItem {
         // Yahoo Finance requires specific intervals for specific ranges
         // to return valid data and look good.
         switch (root.chartRange) {
-            case "1D":  return "range=1d&interval=2m";
+            case "1D":  return "range=2d&interval=2m"; // Use 2d to get reliable previous close for indices
             case "5D":  return "range=5d&interval=15m";
             case "1M":  return "range=1mo&interval=60m"; // '1mo' is Yahoo syntax
             case "6M":  return "range=6mo&interval=1d";
@@ -151,21 +151,36 @@ PlasmoidItem {
             var result = json.chart.result[0];
             var meta = result.meta;
             var quotes = result.indicators.quote[0].close;
+            var timestamps = result.timestamp;
 
             root.singleCompanyName = meta.shortName || meta.longName || root.singleTicker;
-            root.previousClose = meta.chartPreviousClose;
+            // For indices with 2d range, chartPreviousClose is the correct baseline (yesterday's close)
+            // regularMarketPreviousClose and previousClose can be unreliable or point to 2 days ago.
+            root.previousClose = meta.chartPreviousClose || meta.regularMarketPreviousClose || meta.previousClose;
+            
             root.currencySym = getCurrencySymbol(meta.currency);
             root.currentPrice = root.currencySym + meta.regularMarketPrice.toFixed(2);
-            root.currentRawPrice = meta.regularMarketPrice.toFixed(2);
+            root.currentRawPrice = meta.regularMarketPrice;
 
-            var change = meta.regularMarketPrice - meta.chartPreviousClose;
+            var change = meta.regularMarketPrice - root.previousClose;
             root.isPositive = change >= 0;
             root.priceChange = (change > 0 ? "+" : "") + change.toFixed(2);
-            root.percentChange = (change > 0 ? "+" : "") + ((change / meta.chartPreviousClose) * 100).toFixed(2) + "%";
+            root.percentChange = (change > 0 ? "+" : "") + ((change / root.previousClose) * 100).toFixed(2) + "%";
 
             var cleanData = [];
+            var startTime = (meta.currentTradingPeriod && meta.currentTradingPeriod.regular) ? meta.currentTradingPeriod.regular.start : 0;
+            
             for (var i = 0; i < quotes.length; i++) {
-                if (quotes[i] !== null) cleanData.push(quotes[i]);
+                if (quotes[i] !== null) {
+                    // Only show today's data if in 1D mode (2d range used for baseline)
+                    if (root.chartRange === "1D" && startTime > 0) {
+                        if (timestamps[i] >= startTime) {
+                            cleanData.push(quotes[i]);
+                        }
+                    } else {
+                        cleanData.push(quotes[i]);
+                    }
+                }
             }
             root.chartDataPoints = cleanData;
         } catch (e) { console.log("Error parsing single: " + e); }
@@ -176,16 +191,28 @@ PlasmoidItem {
             var result = json.chart.result[0];
             var meta = result.meta;
             var quotes = result.indicators.quote[0].close;
+            var timestamps = result.timestamp;
 
             var current = meta.regularMarketPrice;
-            var prev = meta.chartPreviousClose;
+            var prev = meta.chartPreviousClose || meta.regularMarketPreviousClose || meta.previousClose;
+            
             var change = current - prev;
             var pct = (change / prev) * 100;
             var curSym = getCurrencySymbol(meta.currency);
 
             var cleanData = [];
+            var startTime = (meta.currentTradingPeriod && meta.currentTradingPeriod.regular) ? meta.currentTradingPeriod.regular.start : 0;
+            
             for (var i = 0; i < quotes.length; i++) {
-                if (quotes[i] !== null) cleanData.push(quotes[i]);
+                if (quotes[i] !== null) {
+                    if (root.chartRange === "1D" && startTime > 0) {
+                        if (timestamps[i] >= startTime) {
+                            cleanData.push(quotes[i]);
+                        }
+                    } else {
+                        cleanData.push(quotes[i]);
+                    }
+                }
             }
 
             var itemData = {
