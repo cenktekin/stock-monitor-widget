@@ -16,6 +16,10 @@ PlasmoidItem {
     : Plasmoid.FullRepresentation
 
 
+
+
+
+
     property string singleTicker: Plasmoid.configuration.ticker
     property bool isMultiMode: Plasmoid.configuration.isMultiMode
     property string multiTickers: Plasmoid.configuration.multiTickers
@@ -42,6 +46,8 @@ PlasmoidItem {
     property color positiveColor: Plasmoid.configuration.positiveColor
     property color negativeColor: Plasmoid.configuration.negativeColor
     property bool hideChangePercentage: Plasmoid.configuration.hideChangePercentage
+    property string lastUpdated: ""
+    property string nextUpdate: ""
     property color bgColor: "#1a1a1a"
 
     ListModel { id: stockModel }
@@ -52,7 +58,7 @@ PlasmoidItem {
 
         const symbols = {
             "USD": "$", "EUR": "€", "GBP": "£", "INR": "₹", "JPY": "¥",
-            "CNY": "¥", "KRW": "₩", "RUB": "₽"
+            "CNY": "¥", "KRW": "₩", "RUB": "₽", "TRY": "₺"
         };
         return symbols[code] || code + " ";
     }
@@ -62,7 +68,7 @@ PlasmoidItem {
         // Yahoo Finance requires specific intervals for specific ranges
         // to return valid data and look good.
         switch (root.chartRange) {
-            case "1D":  return "range=1d&interval=2m";
+            case "1D":  return "range=2d&interval=2m"; // Use 2d to get reliable previous close for indices
             case "5D":  return "range=5d&interval=15m";
             case "1M":  return "range=1mo&interval=60m"; // '1mo' is Yahoo syntax
             case "6M":  return "range=6mo&interval=1d";
@@ -151,23 +157,42 @@ PlasmoidItem {
             var result = json.chart.result[0];
             var meta = result.meta;
             var quotes = result.indicators.quote[0].close;
+            var timestamps = result.timestamp;
 
             root.singleCompanyName = meta.shortName || meta.longName || root.singleTicker;
-            root.previousClose = meta.chartPreviousClose;
+            // For indices with 2d range, chartPreviousClose is the correct baseline (yesterday's close)
+            // regularMarketPreviousClose and previousClose can be unreliable or point to 2 days ago.
+            root.previousClose = meta.chartPreviousClose || meta.regularMarketPreviousClose || meta.previousClose;
+            
             root.currencySym = getCurrencySymbol(meta.currency);
             root.currentPrice = root.currencySym + meta.regularMarketPrice.toFixed(2);
-            root.currentRawPrice = meta.regularMarketPrice.toFixed(2);
+            root.currentRawPrice = meta.regularMarketPrice;
 
-            var change = meta.regularMarketPrice - meta.chartPreviousClose;
+            var change = meta.regularMarketPrice - root.previousClose;
             root.isPositive = change >= 0;
             root.priceChange = (change > 0 ? "+" : "") + change.toFixed(2);
-            root.percentChange = (change > 0 ? "+" : "") + ((change / meta.chartPreviousClose) * 100).toFixed(2) + "%";
+            root.percentChange = (change > 0 ? "+" : "") + ((change / root.previousClose) * 100).toFixed(2) + "%";
 
             var cleanData = [];
+            var startTime = (meta.currentTradingPeriod && meta.currentTradingPeriod.regular) ? meta.currentTradingPeriod.regular.start : 0;
+            
             for (var i = 0; i < quotes.length; i++) {
-                if (quotes[i] !== null) cleanData.push(quotes[i]);
+                if (quotes[i] !== null) {
+                    // Only show today's data if in 1D mode (2d range used for baseline)
+                    if (root.chartRange === "1D" && startTime > 0) {
+                        if (timestamps[i] >= startTime) {
+                            cleanData.push(quotes[i]);
+                        }
+                    } else {
+                        cleanData.push(quotes[i]);
+                    }
+                }
             }
             root.chartDataPoints = cleanData;
+            var now = new Date();
+            root.lastUpdated = now.toLocaleTimeString(Qt.locale(), "HH:mm");
+            var next = new Date(now.getTime() + (Plasmoid.configuration.refreshInterval * 60000));
+            root.nextUpdate = next.toLocaleTimeString(Qt.locale(), "HH:mm");
         } catch (e) { console.log("Error parsing single: " + e); }
     }
 
@@ -176,16 +201,28 @@ PlasmoidItem {
             var result = json.chart.result[0];
             var meta = result.meta;
             var quotes = result.indicators.quote[0].close;
+            var timestamps = result.timestamp;
 
             var current = meta.regularMarketPrice;
-            var prev = meta.chartPreviousClose;
+            var prev = meta.chartPreviousClose || meta.regularMarketPreviousClose || meta.previousClose;
+            
             var change = current - prev;
             var pct = (change / prev) * 100;
             var curSym = getCurrencySymbol(meta.currency);
 
             var cleanData = [];
+            var startTime = (meta.currentTradingPeriod && meta.currentTradingPeriod.regular) ? meta.currentTradingPeriod.regular.start : 0;
+            
             for (var i = 0; i < quotes.length; i++) {
-                if (quotes[i] !== null) cleanData.push(quotes[i]);
+                if (quotes[i] !== null) {
+                    if (root.chartRange === "1D" && startTime > 0) {
+                        if (timestamps[i] >= startTime) {
+                            cleanData.push(quotes[i]);
+                        }
+                    } else {
+                        cleanData.push(quotes[i]);
+                    }
+                }
             }
 
             var itemData = {
@@ -208,6 +245,11 @@ PlasmoidItem {
                 }
             }
             if(!found) stockModel.append(itemData);
+
+            var now = new Date();
+            root.lastUpdated = now.toLocaleTimeString(Qt.locale(), "HH:mm");
+            var next = new Date(now.getTime() + (Plasmoid.configuration.refreshInterval * 60000));
+            root.nextUpdate = next.toLocaleTimeString(Qt.locale(), "HH:mm");
 
         } catch (e) { console.log("Error parsing multi: " + e); }
     }
@@ -248,8 +290,22 @@ PlasmoidItem {
         Layout.minimumWidth: implicitWidth
         Layout.preferredWidth: implicitWidth
         
-        onClicked: {
-            root.expanded = !root.expanded;
+        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+        onClicked: (mouse) => {
+            if (mouse.button === Qt.MiddleButton) {
+                // Visual feedback: brief flicker
+                if (priceText) priceText.opacity = 0.3;
+                root.refreshData();
+                timerFlicker.restart();
+            } else {
+                root.expanded = !root.expanded;
+            }
+        }
+
+        Timer {
+            id: timerFlicker
+            interval: 300
+            onTriggered: if (priceText) priceText.opacity = 1.0;
         }
 
         RowLayout {
@@ -355,9 +411,22 @@ PlasmoidItem {
                     anchors.fill: parent
                     z: 100 // Ensure it's on top of everything
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        console.log("Opening URL: " + root.singleTicker);
-                        Qt.openUrlExternally("https://finance.yahoo.com/quote/" + root.singleTicker);
+                    acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+                    onClicked: (mouse) => {
+                        if (mouse.button === Qt.MiddleButton) {
+                            if (priceText) priceText.opacity = 0.3;
+                            root.refreshData();
+                            timerFullFlicker.restart();
+                        } else {
+                            console.log("Opening URL: " + root.singleTicker);
+                            Qt.openUrlExternally("https://finance.yahoo.com/quote/" + root.singleTicker);
+                        }
+                    }
+
+                    Timer {
+                        id: timerFullFlicker
+                        interval: 300
+                        onTriggered: if (priceText) priceText.opacity = 1.0;
                     }
                 }
 
@@ -395,7 +464,12 @@ PlasmoidItem {
                                 font.pixelSize: 10
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
-                                // Layout.maximumWidth: 120
+                            }
+                            Text {
+                                text: (lastUpdated && nextUpdate) ? "Updated: " + lastUpdated + " • Next: " + nextUpdate : ""
+                                color: "#666666" // Slightly brighter
+                                font.pixelSize: 9
+                                visible: lastUpdated !== "" && !root.isMultiMode
                             }
                         }
                         Item { Layout.fillWidth: true }
@@ -433,11 +507,14 @@ PlasmoidItem {
                         }
                     }
                     Text {
+                        id: priceText
                         Layout.alignment: Qt.AlignHCenter
                         text: root.currentPrice
                         color: "white"
                         font.pixelSize: 26
                         font.weight: Font.bold
+
+                        Behavior on opacity { NumberAnimation { duration: 150 } }
                     }
                 }
             }
@@ -463,9 +540,21 @@ PlasmoidItem {
                         anchors.fill: parent
                         z: 100 // Above the row layout
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            console.log("Opening URL: " + model.ticker);
-                            Qt.openUrlExternally("https://finance.yahoo.com/quote/" + model.ticker);
+                        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+                        onClicked: (mouse) => {
+                            if (mouse.button === Qt.MiddleButton) {
+                                parent.opacity = 0.4;
+                                root.refreshData();
+                                timerListFlicker.restart();
+                            } else {
+                                console.log("Opening URL: " + model.ticker);
+                                Qt.openUrlExternally("https://finance.yahoo.com/quote/" + model.ticker);
+                            }
+                        }
+                        Timer {
+                            id: timerListFlicker
+                            interval: 300
+                            onTriggered: parent.opacity = 1.0;
                         }
                     }
 
@@ -557,6 +646,15 @@ PlasmoidItem {
                         visible: index < multiView.count - 1
                     }
                 }
+            }
+            Text {
+                anchors.bottom: parent.bottom
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottomMargin: 8
+                text: (lastUpdated && nextUpdate) ? "Updated: " + lastUpdated + " • Next: " + nextUpdate : ""
+                color: "#777777"
+                font.pixelSize: 10
+                visible: lastUpdated !== "" && root.isMultiMode
             }
         }
     }
