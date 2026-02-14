@@ -20,6 +20,11 @@ Item {
     property alias cfg_positiveColor: posColorButton.text
     property alias cfg_negativeColor: negColorButton.text
     property alias cfg_hideChangePercentage: hidePercentSwitch.checked
+    property alias cfg_hideTimestamps: hideTimestampsSwitch.checked
+
+    // Portfolio settings
+    property alias cfg_showPortfolioMode: portfolioModeSwitch.checked
+    property string cfg_portfolioData
 
     property string cfg_chartRange
 
@@ -55,6 +60,17 @@ Item {
         }
         xhr.open("GET", url);
         xhr.send();
+    }
+
+    function formatPortfolioList(portfolio) {
+        if (!portfolio || portfolio.length === 0) {
+            return "No holdings added yet.";
+        }
+        var displayStr = "Current Holdings:\n";
+        for (var i = 0; i < portfolio.length; i++) {
+            displayStr += "• " + portfolio[i].ticker + ": " + portfolio[i].shares + " shares @ " + portfolio[i].averageCost.toFixed(2) + "\n";
+        }
+        return displayStr;
     }
 
     Kirigami.FormLayout {
@@ -136,6 +152,12 @@ Item {
             text: "Toggle Visibility"
         }
 
+        CheckBox {
+            id: hideTimestampsSwitch
+            Kirigami.FormData.label: "Update Timestamps:"
+            text: "Toggle Visibility"
+        }
+
         Item {
             Kirigami.FormData.isSection: true
             Kirigami.FormData.label: "Colors"
@@ -151,6 +173,119 @@ Item {
             id: negColorButton
             Kirigami.FormData.label: "Negative Color (Hex):"
             placeholderText: "#ff3b30"
+        }
+
+        Item {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: "Portfolio Tracking"
+        }
+
+        CheckBox {
+            id: portfolioModeSwitch
+            Kirigami.FormData.label: "Portfolio Mode:"
+            text: "Show profit/loss calculations"
+        }
+
+        TextField {
+            id: portfolioTickerField
+            Kirigami.FormData.label: "Ticker:"
+            placeholderText: "e.g., AAPL"
+            Layout.preferredWidth: 120
+        }
+
+        SpinBox {
+            id: portfolioSharesSpin
+            Kirigami.FormData.label: "Shares:"
+            from: 0
+            to: 999999
+            editable: true
+        }
+
+        TextField {
+            id: portfolioCostField
+            Kirigami.FormData.label: "Average Cost:"
+            placeholderText: "0.00"
+            validator: DoubleValidator { bottom: 0; decimals: 2 }
+        }
+
+        RowLayout {
+            spacing: Kirigami.Units.smallSpacing
+            Kirigami.FormData.label: "Actions:"
+
+            Button {
+                text: "Add/Update"
+                onClicked: {
+                    if (portfolioTickerField.text.trim() !== "" && portfolioSharesSpin.value > 0) {
+                        var portfolio = configPage.cfg_portfolioData ? JSON.parse(configPage.cfg_portfolioData) : [];
+                        var ticker = portfolioTickerField.text.trim().toUpperCase();
+                        var found = false;
+                        for (var i = 0; i < portfolio.length; i++) {
+                            if (portfolio[i].ticker === ticker) {
+                                portfolio[i].shares = portfolioSharesSpin.value;
+                                portfolio[i].averageCost = parseFloat(portfolioCostField.text) || 0;
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found) {
+                            portfolio.push({
+                                ticker: ticker,
+                                shares: portfolioSharesSpin.value,
+                                averageCost: parseFloat(portfolioCostField.text) || 0,
+                                addedDate: new Date().toISOString()
+                            });
+                        }
+                        configPage.cfg_portfolioData = JSON.stringify(portfolio);
+                        portfolioListText.text = formatPortfolioList(portfolio);
+                        portfolioTickerField.text = "";
+                        portfolioSharesSpin.value = 0;
+                        portfolioCostField.text = "";
+                    }
+                }
+            }
+
+            Button {
+                text: "Remove"
+                onClicked: {
+                    if (portfolioTickerField.text.trim() !== "") {
+                        var portfolio = configPage.cfg_portfolioData ? JSON.parse(configPage.cfg_portfolioData) : [];
+                        var ticker = portfolioTickerField.text.trim().toUpperCase();
+                        portfolio = portfolio.filter(function(item) { return item.ticker !== ticker; });
+                        configPage.cfg_portfolioData = JSON.stringify(portfolio);
+                        portfolioListText.text = formatPortfolioList(portfolio);
+                    }
+                }
+            }
+
+            Button {
+                text: "Export CSV"
+                onClicked: {
+                    var portfolio = configPage.cfg_portfolioData ? JSON.parse(configPage.cfg_portfolioData) : [];
+                    if (portfolio.length === 0) {
+                        portfolioListText.text = "No portfolio data to export.";
+                        return;
+                    }
+                    var csv = "Ticker,Shares,Average Cost,Added Date\n";
+                    for (var i = 0; i < portfolio.length; i++) {
+                        csv += portfolio[i].ticker + "," + portfolio[i].shares + "," + portfolio[i].averageCost + "," + portfolio[i].addedDate + "\n";
+                    }
+                    var filename = "stock_portfolio_" + new Date().toISOString().split('T')[0] + ".csv";
+                    portfolioListText.text = "CSV Content (copy manually):\n" + csv;
+                }
+            }
+        }
+
+        Label {
+            id: portfolioListText
+            text: ""
+            font.pixelSize: 11
+            color: Kirigami.Theme.neutralTextColor
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
+            Component.onCompleted: {
+                var portfolio = configPage.cfg_portfolioData ? JSON.parse(configPage.cfg_portfolioData) : [];
+                text = formatPortfolioList(portfolio);
+            }
         }
 
         Item {

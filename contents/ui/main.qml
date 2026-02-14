@@ -46,6 +46,7 @@ PlasmoidItem {
     property color positiveColor: Plasmoid.configuration.positiveColor
     property color negativeColor: Plasmoid.configuration.negativeColor
     property bool hideChangePercentage: Plasmoid.configuration.hideChangePercentage
+    property bool hideTimestamps: Plasmoid.configuration.hideTimestamps
     property string lastUpdated: ""
     property string nextUpdate: ""
     property color bgColor: "#1a1a1a"
@@ -160,9 +161,9 @@ PlasmoidItem {
             var timestamps = result.timestamp;
 
             root.singleCompanyName = meta.shortName || meta.longName || root.singleTicker;
-            // For indices with 2d range, chartPreviousClose is the correct baseline (yesterday's close)
-            // regularMarketPreviousClose and previousClose can be unreliable or point to 2 days ago.
-            root.previousClose = meta.chartPreviousClose || meta.regularMarketPreviousClose || meta.previousClose;
+            // Prefer regularMarketPreviousClose (always yesterday's close).
+            // With 2d range, chartPreviousClose can point to 2 days ago, so use as last resort.
+            root.previousClose = meta.regularMarketPreviousClose || meta.previousClose || meta.chartPreviousClose;
             
             root.currencySym = getCurrencySymbol(meta.currency);
             root.currentPrice = root.currencySym + meta.regularMarketPrice.toFixed(2);
@@ -204,7 +205,7 @@ PlasmoidItem {
             var timestamps = result.timestamp;
 
             var current = meta.regularMarketPrice;
-            var prev = meta.chartPreviousClose || meta.regularMarketPreviousClose || meta.previousClose;
+            var prev = meta.regularMarketPreviousClose || meta.previousClose || meta.chartPreviousClose;
             
             var change = current - prev;
             var pct = (change / prev) * 100;
@@ -469,7 +470,7 @@ PlasmoidItem {
                                 text: (lastUpdated && nextUpdate) ? "Updated: " + lastUpdated + " • Next: " + nextUpdate : ""
                                 color: "#666666" // Slightly brighter
                                 font.pixelSize: 9
-                                visible: lastUpdated !== "" && !root.isMultiMode
+                                visible: lastUpdated !== "" && !root.isMultiMode && !root.hideTimestamps
                             }
                         }
                         Item { Layout.fillWidth: true }
@@ -654,7 +655,7 @@ PlasmoidItem {
                 text: (lastUpdated && nextUpdate) ? "Updated: " + lastUpdated + " • Next: " + nextUpdate : ""
                 color: "#777777"
                 font.pixelSize: 10
-                visible: lastUpdated !== "" && root.isMultiMode
+                visible: lastUpdated !== "" && root.isMultiMode && !root.hideTimestamps
             }
         }
     }
