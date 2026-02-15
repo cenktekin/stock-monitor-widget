@@ -161,8 +161,10 @@ PlasmoidItem {
             var timestamps = result.timestamp;
 
             root.singleCompanyName = meta.shortName || meta.longName || root.singleTicker;
-            // Prefer regularMarketPreviousClose (always yesterday's close).
-            // With 2d range, chartPreviousClose can point to 2 days ago, so use as last resort.
+            // previousClose priority: regularMarketPreviousClose is the canonical
+            // "yesterday's close" from Yahoo Finance metadata. When using 2d range
+            // (needed for intraday baseline), chartPreviousClose may return the close
+            // from 2 days ago rather than yesterday, so we use it only as a last resort.
             root.previousClose = meta.regularMarketPreviousClose || meta.previousClose || meta.chartPreviousClose;
             
             root.currencySym = getCurrencySymbol(meta.currency);
@@ -205,6 +207,7 @@ PlasmoidItem {
             var timestamps = result.timestamp;
 
             var current = meta.regularMarketPrice;
+            // See processSingleData for rationale: regularMarketPreviousClose preferred over chartPreviousClose.
             var prev = meta.regularMarketPreviousClose || meta.previousClose || meta.chartPreviousClose;
             
             var change = current - prev;

@@ -73,6 +73,24 @@ Item {
         return displayStr;
     }
 
+    function safeParsePortfolio(data) {
+        if (!data) return [];
+        try {
+            return JSON.parse(data);
+        } catch (e) {
+            console.error("Failed to parse portfolio data:", e);
+            return [];
+        }
+    }
+
+    function escapeCsvField(val) {
+        var str = String(val);
+        if (str.indexOf(",") >= 0 || str.indexOf("\"") >= 0 || str.indexOf("\n") >= 0) {
+            return "\"" + str.replace(/"/g, "\"\"") + "\"";
+        }
+        return str;
+    }
+
     Kirigami.FormLayout {
         anchors.left: parent.left
         anchors.right: parent.right
@@ -149,13 +167,13 @@ Item {
         CheckBox {
             id: hidePercentSwitch
             Kirigami.FormData.label: "Stock Change Percentage:"
-            text: "Toggle Visibility"
+            text: "Hide stock change percentage"
         }
 
         CheckBox {
             id: hideTimestampsSwitch
             Kirigami.FormData.label: "Update Timestamps:"
-            text: "Toggle Visibility"
+            text: "Hide update timestamps"
         }
 
         Item {
@@ -216,13 +234,14 @@ Item {
                 text: "Add/Update"
                 onClicked: {
                     if (portfolioTickerField.text.trim() !== "" && portfolioSharesSpin.value > 0) {
-                        var portfolio = configPage.cfg_portfolioData ? JSON.parse(configPage.cfg_portfolioData) : [];
+                        var portfolio = safeParsePortfolio(configPage.cfg_portfolioData);
                         var ticker = portfolioTickerField.text.trim().toUpperCase();
                         var found = false;
                         for (var i = 0; i < portfolio.length; i++) {
                             if (portfolio[i].ticker === ticker) {
                                 portfolio[i].shares = portfolioSharesSpin.value;
                                 portfolio[i].averageCost = parseFloat(portfolioCostField.text) || 0;
+                                portfolio[i].lastModifiedDate = new Date().toISOString();
                                 found = true;
                                 break;
                             }
@@ -248,7 +267,7 @@ Item {
                 text: "Remove"
                 onClicked: {
                     if (portfolioTickerField.text.trim() !== "") {
-                        var portfolio = configPage.cfg_portfolioData ? JSON.parse(configPage.cfg_portfolioData) : [];
+                        var portfolio = safeParsePortfolio(configPage.cfg_portfolioData);
                         var ticker = portfolioTickerField.text.trim().toUpperCase();
                         portfolio = portfolio.filter(function(item) { return item.ticker !== ticker; });
                         configPage.cfg_portfolioData = JSON.stringify(portfolio);
@@ -260,16 +279,15 @@ Item {
             Button {
                 text: "Export CSV"
                 onClicked: {
-                    var portfolio = configPage.cfg_portfolioData ? JSON.parse(configPage.cfg_portfolioData) : [];
+                    var portfolio = safeParsePortfolio(configPage.cfg_portfolioData);
                     if (portfolio.length === 0) {
                         portfolioListText.text = "No portfolio data to export.";
                         return;
                     }
                     var csv = "Ticker,Shares,Average Cost,Added Date\n";
                     for (var i = 0; i < portfolio.length; i++) {
-                        csv += portfolio[i].ticker + "," + portfolio[i].shares + "," + portfolio[i].averageCost + "," + portfolio[i].addedDate + "\n";
+                        csv += escapeCsvField(portfolio[i].ticker) + "," + escapeCsvField(portfolio[i].shares) + "," + escapeCsvField(portfolio[i].averageCost) + "," + escapeCsvField(portfolio[i].addedDate) + "\n";
                     }
-                    var filename = "stock_portfolio_" + new Date().toISOString().split('T')[0] + ".csv";
                     portfolioListText.text = "CSV Content (copy manually):\n" + csv;
                 }
             }
@@ -283,7 +301,7 @@ Item {
             wrapMode: Text.WordWrap
             Layout.fillWidth: true
             Component.onCompleted: {
-                var portfolio = configPage.cfg_portfolioData ? JSON.parse(configPage.cfg_portfolioData) : [];
+                var portfolio = safeParsePortfolio(configPage.cfg_portfolioData);
                 text = formatPortfolioList(portfolio);
             }
         }
