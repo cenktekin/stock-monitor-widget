@@ -51,7 +51,6 @@ PlasmoidItem {
     // Portfolio Tracking (holdings come from configPortfolio.qml)
     property bool showPortfolioMode: Plasmoid.configuration.showPortfolioMode
     property string portfolioData: Plasmoid.configuration.portfolioData
-    property var portfolioHolding: null
     property string portfolioProfit: ""
     property string portfolioProfitPct: ""
     property bool portfolioProfitPositive: true
@@ -255,7 +254,6 @@ PlasmoidItem {
         var averageCost = holding ? Number(holding.averageCost) || 0 : 0;
 
         if (!holding || shares <= 0 || root.currentRawPrice <= 0) {
-            root.portfolioHolding = null;
             root.portfolioProfit = "";
             root.portfolioProfitPct = "";
             return;
@@ -265,7 +263,6 @@ PlasmoidItem {
         var profitPct = averageCost > 0 ? ((root.currentRawPrice - averageCost) / averageCost) * 100 : 0;
         var sign = profit > 0 ? "+" : "";
 
-        root.portfolioHolding = { "shares": shares, "averageCost": averageCost, "value": root.currentRawPrice * shares };
         root.portfolioProfitPositive = profit >= 0;
         root.portfolioProfit = sign + root.currencySym + formatNumber(profit, false);
         root.portfolioProfitPct = averageCost > 0 ? sign + formatNumber(profitPct, false) + "%" : "";
