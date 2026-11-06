@@ -33,14 +33,15 @@ jobs:
       - name: Validate metadata.json
         run: python3 -c "import json; json.load(open('metadata.json'))"
 
+      - name: Install Plasma 6 package tooling
+        # kpackagetool6 is packaged from 26.04 on; plasma-desktoptheme ships the
+        # KF6 Plasma/Applet package structure plugin that --type needs.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends kpackagetool6 plasma-desktoptheme
+
       - name: kpackagetool6 --install
         run: |
-          docker run --rm \
-            -e DEBIAN_FRONTEND=noninteractive \
-            -e XDG_DATA_HOME=/tmp/xdg \
-            -v "$PWD:/src:ro" \
-            ubuntu:26.04 \
-            bash -c "apt-get update \
-              && apt-get install -y --no-install-recommends kpackagetool6 \
-              && kpackagetool6 --type Plasma/Applet --install /src \
-              && kpackagetool6 --type Plasma/Applet --list"
+          export XDG_DATA_HOME="$RUNNER_TEMP/xdg"
+          kpackagetool6 --type Plasma/Applet --install .
+          kpackagetool6 --type Plasma/Applet --list
