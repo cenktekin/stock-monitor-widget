@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  qml-lint:
+    name: QML lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt QML tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qt6-declarative-dev-tools
+
+      - name: qmllint
+        run: |
+          mapfile -t files < <(find contents -name '*.qml' -print | sort)
+          printf '%s\n' "${files[@]}"
+          qmllint "${files[@]}"
+
+  package-install:
+    name: Plasma package install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate metadata.json
+        run: python3 -c "import json; json.load(open('metadata.json'))"
+
+      - name: kpackagetool6 --install
+        run: |
+          docker run --rm \
+            -e DEBIAN_FRONTEND=noninteractive \
+            -e XDG_DATA_HOME=/tmp/xdg \
+            -v "$PWD:/src:ro" \
+            ubuntu:26.04 \
+            bash -c "apt-get update \
+              && apt-get install -y --no-install-recommends kpackagetool6 \
+              && kpackagetool6 --type Plasma/Applet --install /src \
+              && kpackagetool6 --type Plasma/Applet --list"
