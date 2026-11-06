@@ -22,6 +22,7 @@ This is a clean, modern stock market widget for KDE Plasma 6. It pulls data dire
 ## 🚀 Features
 
 - **Two Display Modes:** Single View and Multi-Stock List.
+- **Portfolio Tracking:** Add holdings (ticker, shares, average cost) under *Configure → Portfolio*; the widget shows the live profit/loss line for the ticker in view.
 - **Beautiful Charts:** Smooth, gradient-filled charts that change color (Green/Red) based on performance.
 - **Data Ranges:** View history from 1 Day (1D) up to 5 Years (5Y) or Max.
 - **Smart & Efficient:**

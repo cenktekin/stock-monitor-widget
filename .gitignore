@@ -1,1 +1,4 @@
 stockmonitor.plasmoid
+
+# Local Joplin note exports (source of truth: Joplin > Teknik Notlar)
+*stock-monitor-widget-main - *.md
