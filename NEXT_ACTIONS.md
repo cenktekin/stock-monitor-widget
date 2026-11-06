@@ -24,7 +24,7 @@
 | T8 | Kirli ağaç | `planning/` + `NEXT_ACTIONS.md` commit edildi (proje hafızası). 3 Joplin export'u `.gitignore` → `*stock-monitor-widget-main - *.md` (kaynak doğruluk: Joplin) |
 | T3 | Portfolio Mode kararı | **Seçenek A** uygulandı: `showPortfolioMode` + `portfolioData` `main.qml`'de okunuyor, `updatePortfolioProfit()` → `(regularMarketPrice - averageCost) * shares` + yüzde. `SingleStockView`'da "P/L" satırı, pozitif/negatif renk mevcut desenle. Config sekmesi adı "Portfolio Tracking(WIP)" → "Portfolio" |
 | T4 | `processSingleData` ↔ `processListRow` kopyası | `extractChart(json, chartRange)` → `{cleanData, prevClose, meta}` tek kaynak. `chartPreviousClose > regularMarketPreviousClose > previousClose` önceliği **aynen korundu** (3. tekrar eden fix) |
-| T5 | `main.qml` bölme | 524 → **335 satır**. Yeni: `contents/js/DataFetcher.js` (XHR + parse), `contents/js/Formatter.js` (formatNumber, getCurrencySymbol), `contents/ui/PanelView.qml` (compact representation) |
+| T5 | `main.qml` bölme | 524 → **332 satır**. Yeni: `contents/js/DataFetcher.js` (XHR + parse), `contents/js/Formatter.js` (formatNumber, getCurrencySymbol), `contents/ui/PanelView.qml` (compact representation) |
 | T7 | QML doğrulama kapısı | `.github/workflows/ci.yml`: (1) `qmllint` — tüm `contents/**/*.qml` (Qt araçları `/usr/lib/qt6/bin`'de); (2) `kpackagetool6 --install` — `kpackagetool6` **+ plasma-desktoptheme** (KF6 `Plasma/Applet` yapısı o pakette; tek başına `kpackagetool6` "Package type not found" veriyor). `continue-on-error` yok |
 | EK | `configSearch.qml` rich-text injection | `"<b>" + model.name` kaldırıldı → `textFormat: Text.PlainText` |
 
