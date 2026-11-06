@@ -111,7 +111,8 @@ Item {
                         Layout.fillWidth: true
                         
                         Label {
-                            text: "<b>" + model.symbol + "</b> - " + model.name
+                            text: model.symbol + " - " + model.name
+                            textFormat: Text.PlainText
                             Layout.fillWidth: true
                             elide: Text.ElideRight
                         }

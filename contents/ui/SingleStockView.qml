@@ -137,6 +137,14 @@ Rectangle {
 
                 Behavior on opacity { NumberAnimation { duration: 150 } }
             }
+            Text {
+                Layout.alignment: Qt.AlignHCenter
+                visible: rootItem.showPortfolioMode && rootItem.portfolioProfit !== ""
+                text: "P/L " + rootItem.portfolioProfit + (rootItem.portfolioProfitPct !== "" ? " (" + rootItem.portfolioProfitPct + ")" : "")
+                color: rootItem.portfolioProfitPositive ? rootItem.positiveColor : rootItem.negativeColor
+                font.pixelSize: 11
+                font.weight: Font.Bold
+            }
         }
     }
 

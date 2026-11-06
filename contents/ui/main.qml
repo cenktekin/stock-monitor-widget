@@ -4,6 +4,8 @@ import QtQuick.Controls
 import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import org.kde.kirigami as Kirigami
+import "../js/DataFetcher.js" as DataFetcher
+import "../js/Formatter.js" as Formatter
 
 PlasmoidItem {
     id: root
@@ -14,6 +16,8 @@ PlasmoidItem {
     preferredRepresentation: (Plasmoid.formFactor === PlasmaCore.Types.Horizontal || Plasmoid.formFactor === PlasmaCore.Types.Vertical)
     ? Plasmoid.CompactRepresentation
     : Plasmoid.FullRepresentation
+
+    property int formFactor: Plasmoid.formFactor
 
     property string singleTicker: Plasmoid.configuration.ticker
     property bool isMultiMode: Plasmoid.configuration.isMultiMode
@@ -44,6 +48,14 @@ PlasmoidItem {
     property bool isPositive: true
     property string currencySym: ""
 
+    // Portfolio Tracking (holdings come from configPortfolio.qml)
+    property bool showPortfolioMode: Plasmoid.configuration.showPortfolioMode
+    property string portfolioData: Plasmoid.configuration.portfolioData
+    property var portfolioHolding: null
+    property string portfolioProfit: ""
+    property string portfolioProfitPct: ""
+    property bool portfolioProfitPositive: true
+
     property bool isLightTheme: Plasmoid.configuration.isLightTheme
     property color positiveColor: Plasmoid.configuration.positiveColor
     property color negativeColor: Plasmoid.configuration.negativeColor
@@ -65,59 +77,35 @@ PlasmoidItem {
     ListModel { id: stockModel }
 
     function getCurrencySymbol(code) {
-        // Fix: Return empty string if code is missing or literal "null"
-        if (!code || code === "null") return "";
-
-        const symbols = {
-            "USD": "$", "EUR": "€", "GBP": "£", "INR": "₹", "JPY": "¥",
-            "CNY": "¥", "KRW": "₩", "RUB": "₽", "TRY": "₺"
-        };
-        return symbols[code] || code + " ";
+        return Formatter.getCurrencySymbol(code);
     }
 
-    // --- NEW HELPER: GET API PARAMETERS BASED ON CONFIG ---
-    function getApiParams() {
-        // Yahoo Finance requires specific intervals for specific ranges
-        // to return valid data and look good.
-        switch (root.chartRange) {
-            case "1D":  return "range=2d&interval=2m"; // Use 2d to get reliable previous close for indices
-            case "5D":  return "range=5d&interval=15m";
-            case "1M":  return "range=1mo&interval=60m"; // '1mo' is Yahoo syntax
-            case "6M":  return "range=6mo&interval=1d";
-            case "YTD": return "range=ytd&interval=1d";
-            case "1Y":  return "range=1y&interval=1d";
-            case "5Y":  return "range=5y&interval=1wk";
-            case "Max": return "range=max&interval=1mo";
-            default:    return "range=1d&interval=2m";
-        }
+    function formatNumber(amount, isChange) {
+        return Formatter.formatNumber(amount, isChange, root.formatPrices, root.hideDecimals);
     }
 
     function refreshData() {
         if (root.isMultiMode) {
             fetchMultiStocks();
-        } 
+        }
         else {
             fetchSingleStock(root.singleTicker);
         }
     }
 
-    // --- NEW CHECK: IS MARKET OPEN? ---
+    // --- CHECK: IS MARKET OPEN? ---
     function checkTimeAndRefresh() {
         // 1. Always check weekend first (optional, but saves battery)
         var d = new Date();
         var day = d.getDay();
         // 0=Sun, 6=Sat. Crypto (BTC) runs 24/7, so you might want to skip this check for crypto.
-        // Assuming stocks for now:
         if (root.skipWeekendRefresh && (day === 0 || day === 6)) {
             return;
         }
 
         // 2. Check Time Window if enabled
         if (root.limitHours) {
-            var nowHour = d.getHours();
-            var nowMin = d.getMinutes();
-            var currentTimeVal = nowHour * 60 + nowMin;
-
+            var currentTimeVal = d.getHours() * 60 + d.getMinutes();
             var startTimeVal = root.startHour * 60 + root.startMinute;
             var endTimeVal = root.endHour * 60 + root.endMinute;
 
@@ -132,16 +120,9 @@ PlasmoidItem {
     }
 
     function fetchSingleStock(symbol) {
-        var xhr = new XMLHttpRequest();
-        var url = "https://query1.finance.yahoo.com/v8/finance/chart/" + symbol + "?" + getApiParams();
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
-                var response = JSON.parse(xhr.responseText);
-                processSingleData(response);
-            }
-        }
-        xhr.open("GET", url);
-        xhr.send();
+        DataFetcher.fetchChart(symbol, root.chartRange, function(json) {
+            processSingleData(json);
+        });
     }
 
     function fetchMultiStocks() {
@@ -157,7 +138,7 @@ PlasmoidItem {
                 return a.localeCompare(b);
             });
         }
-        
+
         var defaultPanelTicker = targetTickers.length > 0 ? targetTickers[0] : "";
         root.panelTicker = root.manualPanelTickerOverride !== "" && targetTickers.indexOf(root.manualPanelTickerOverride) !== -1 ? root.manualPanelTickerOverride : defaultPanelTicker;
         root.singleTicker = root.panelTicker;
@@ -180,80 +161,38 @@ PlasmoidItem {
         }
 
         targetTickers.forEach(function(cleanSymbol) {
-            var xhr = new XMLHttpRequest();
-            var url = "https://query1.finance.yahoo.com/v8/finance/chart/" + cleanSymbol + "?" + getApiParams();
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
-                    var response = JSON.parse(xhr.responseText);
-                    processListRow(cleanSymbol, response);
-                }
-            }
-            xhr.open("GET", url);
-            xhr.send();
+            DataFetcher.fetchChart(cleanSymbol, root.chartRange, function(json) {
+                processListRow(cleanSymbol, json);
+            });
         });
+    }
+
+    function updateTimestamps() {
+        var now = new Date();
+        root.lastUpdated = now.toLocaleTimeString(Qt.locale(), "HH:mm");
+        var next = new Date(now.getTime() + (Plasmoid.configuration.refreshInterval * 60000));
+        root.nextUpdate = next.toLocaleTimeString(Qt.locale(), "HH:mm");
     }
 
     function processSingleData(json, fallbackSymbol) {
         try {
-            var result = json.chart.result[0];
-            var meta = result.meta;
-            var quotes = result.indicators.quote[0].close;
-            var timestamps = result.timestamp;
+            var chart = DataFetcher.extractChart(json, root.chartRange);
+            var meta = chart.meta;
 
             root.singleCompanyName = meta.shortName || meta.longName || (fallbackSymbol || root.singleTicker);
             root.currencySym = getCurrencySymbol(meta.currency);
             root.currentRawPrice = meta.regularMarketPrice;
             root.currentPrice = root.currencySym + formatNumber(meta.regularMarketPrice, false);
-
-            var cleanData = [];
-            var startTime = (meta.currentTradingPeriod && meta.currentTradingPeriod.regular) ? meta.currentTradingPeriod.regular.start : 0;
-            
-            for (var i = 0; i < quotes.length; i++) {
-                if (quotes[i] !== null) {
-                    if (root.chartRange === "1D" && startTime > 0) {
-                        if (timestamps[i] >= startTime) {
-                            cleanData.push(quotes[i]);
-                        }
-                    } else {
-                        cleanData.push(quotes[i]);
-                    }
-                }
-            }
-
-            if (root.chartRange === "1D" && cleanData.length === 0 && timestamps && timestamps.length > 0) {
-                var dayStartIndex = 0;
-                for (var j = timestamps.length - 1; j > 0; j--) {
-                    if (timestamps[j] - timestamps[j-1] > 4 * 3600) { 
-                        dayStartIndex = j;
-                        break;
-                    }
-                }
-                for (var k = dayStartIndex; k < quotes.length; k++) {
-                    if (quotes[k] !== null) {
-                        cleanData.push(quotes[k]);
-                    }
-                }
-            }
-            root.chartDataPoints = cleanData;
-
-            if (root.chartRange === "1D") {
-                root.previousClose = meta.chartPreviousClose || meta.regularMarketPreviousClose || meta.previousClose;
-            } else {
-                root.previousClose = meta.chartPreviousClose;
-                if (!root.previousClose || root.previousClose === 0) {
-                    root.previousClose = cleanData.length > 0 ? cleanData[0] : meta.regularMarketPreviousClose;
-                }
-            }
+            root.chartDataPoints = chart.cleanData;
+            root.previousClose = chart.prevClose;
 
             var change = meta.regularMarketPrice - root.previousClose;
             root.isPositive = change >= 0;
             root.priceChange = formatNumber(change, true);
             root.percentChange = formatNumber((change / root.previousClose) * 100, true) + "%";
 
-            var now = new Date();
-            root.lastUpdated = now.toLocaleTimeString(Qt.locale(), "HH:mm");
-            var next = new Date(now.getTime() + (Plasmoid.configuration.refreshInterval * 60000));
-            root.nextUpdate = next.toLocaleTimeString(Qt.locale(), "HH:mm");
+            updateTimestamps();
+            updatePortfolioProfit();
         } catch (e) { console.log("Error parsing single: " + e); }
     }
 
@@ -262,56 +201,13 @@ PlasmoidItem {
             processSingleData(json, symbol);
         }
         try {
-            var result = json.chart.result[0];
-            var meta = result.meta;
-            var quotes = result.indicators.quote[0].close;
-            var timestamps = result.timestamp;
+            var chart = DataFetcher.extractChart(json, root.chartRange);
+            var meta = chart.meta;
 
             var current = meta.regularMarketPrice;
             var curSym = getCurrencySymbol(meta.currency);
-
-            var cleanData = [];
-            var startTime = (meta.currentTradingPeriod && meta.currentTradingPeriod.regular) ? meta.currentTradingPeriod.regular.start : 0;
-            
-            for (var i = 0; i < quotes.length; i++) {
-                if (quotes[i] !== null) {
-                    if (root.chartRange === "1D" && startTime > 0) {
-                        if (timestamps[i] >= startTime) {
-                            cleanData.push(quotes[i]);
-                        }
-                    } else {
-                        cleanData.push(quotes[i]);
-                    }
-                }
-            }
-
-            if (root.chartRange === "1D" && cleanData.length === 0 && timestamps && timestamps.length > 0) {
-                var dayStartIndex = 0;
-                for (var j = timestamps.length - 1; j > 0; j--) {
-                    if (timestamps[j] - timestamps[j-1] > 4 * 3600) {
-                        dayStartIndex = j;
-                        break;
-                    }
-                }
-                for (var k = dayStartIndex; k < quotes.length; k++) {
-                    if (quotes[k] !== null) {
-                        cleanData.push(quotes[k]);
-                    }
-                }
-            }
-
-            var prev;
-            if (root.chartRange === "1D") {
-                prev = meta.chartPreviousClose || meta.regularMarketPreviousClose || meta.previousClose;
-            } else {
-                prev = meta.chartPreviousClose;
-                if (!prev || prev === 0) {
-                    prev = cleanData.length > 0 ? cleanData[0] : meta.regularMarketPreviousClose;
-                }
-            }
-            
-            var change = current - prev;
-            var pct = prev > 0 ? (change / prev) * 100 : 0;
+            var change = current - chart.prevClose;
+            var pct = chart.prevClose > 0 ? (change / chart.prevClose) * 100 : 0;
 
             var itemData = {
                 "ticker": symbol,
@@ -320,52 +216,65 @@ PlasmoidItem {
                 "change": formatNumber(change, true),
                 "pct": formatNumber(pct, true) + "%",
                 "isPos": change >= 0,
-                "chartPoints": cleanData,
-                "prevClose": prev
+                "chartPoints": chart.cleanData,
+                "prevClose": chart.prevClose
             };
 
             var found = false;
-            for(var k=0; k<stockModel.count; k++) {
-                if(stockModel.get(k).ticker === symbol) {
+            for (var k = 0; k < stockModel.count; k++) {
+                if (stockModel.get(k).ticker === symbol) {
                     stockModel.set(k, itemData);
                     found = true;
                     break;
                 }
             }
-            if(!found) stockModel.append(itemData);
+            if (!found) stockModel.append(itemData);
 
-            var now = new Date();
-            root.lastUpdated = now.toLocaleTimeString(Qt.locale(), "HH:mm");
-            var next = new Date(now.getTime() + (Plasmoid.configuration.refreshInterval * 60000));
-            root.nextUpdate = next.toLocaleTimeString(Qt.locale(), "HH:mm");
-
+            updateTimestamps();
         } catch (e) { console.log("Error parsing multi: " + e); }
     }
 
-    function formatNumber(amount, isChange) {
-        var num = parseFloat(amount);
-        if (isNaN(num)) return amount;
-        
-        var isPositive = num >= 0;
-        var absNum = Math.abs(num);
-        
-        var hideDecs = root.hideDecimals && !isChange;
-        var formatted = hideDecs ? Math.round(absNum).toString() : absNum.toFixed(2);
-        
-        if (root.formatPrices) {
-            var parts = formatted.split(".");
-            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-            formatted = parts.join(".");
+    function findPortfolioHolding() {
+        if (!root.showPortfolioMode || !root.portfolioData) return null;
+        try {
+            var holdings = JSON.parse(root.portfolioData);
+            if (!holdings || holdings.length === undefined) return null;
+            var symbol = String(root.singleTicker || "").toUpperCase();
+            for (var i = 0; i < holdings.length; i++) {
+                if (String(holdings[i].ticker || "").toUpperCase() === symbol) return holdings[i];
+            }
+        } catch (e) {
+            console.log("Error parsing portfolio: " + e);
         }
-        
-        var sign = "";
-        if (isChange && isPositive && num > 0) sign = "+";
-        else if (!isPositive) sign = "-";
-        
-        return sign + formatted;
+        return null;
     }
 
-    onSingleTickerChanged: refreshData()
+    function updatePortfolioProfit() {
+        var holding = findPortfolioHolding();
+        var shares = holding ? Number(holding.shares) || 0 : 0;
+        var averageCost = holding ? Number(holding.averageCost) || 0 : 0;
+
+        if (!holding || shares <= 0 || root.currentRawPrice <= 0) {
+            root.portfolioHolding = null;
+            root.portfolioProfit = "";
+            root.portfolioProfitPct = "";
+            return;
+        }
+
+        var profit = (root.currentRawPrice - averageCost) * shares;
+        var profitPct = averageCost > 0 ? ((root.currentRawPrice - averageCost) / averageCost) * 100 : 0;
+        var sign = profit > 0 ? "+" : "";
+
+        root.portfolioHolding = { "shares": shares, "averageCost": averageCost, "value": root.currentRawPrice * shares };
+        root.portfolioProfitPositive = profit >= 0;
+        root.portfolioProfit = sign + root.currencySym + formatNumber(profit, false);
+        root.portfolioProfitPct = averageCost > 0 ? sign + formatNumber(profitPct, false) + "%" : "";
+    }
+
+    onSingleTickerChanged: {
+        root.portfolioProfit = "";
+        refreshData();
+    }
     onIsMultiModeChanged: {
         stockModel.clear();
         if (!isMultiMode) {
@@ -382,132 +291,34 @@ PlasmoidItem {
     onSortAlphabeticallyChanged: { stockModel.clear(); refreshData(); }
     onFormatPricesChanged: refreshData()
     onHideDecimalsChanged: refreshData()
-    // CHANGED: Update when range changes
     onChartRangeChanged: { stockModel.clear(); refreshData(); }
-
-    // --- CUSTOM TOOLTIP ---
-    // Tooltip removed due to compatibility issues across some Plasma 6 versions
+    onPortfolioDataChanged: updatePortfolioProfit()
+    onShowPortfolioModeChanged: updatePortfolioProfit()
 
     Timer {
         interval: Plasmoid.configuration.refreshInterval * 60000
         running: true
         repeat: true
         triggeredOnStart: true
-        // CHANGED: Call checkTimeAndRefresh instead of refreshData directly
         onTriggered: root.checkTimeAndRefresh()
     }
 
     // --- PANEL VIEW (Compact Representation) ---
-    compactRepresentation: MouseArea {
-        id: compactRoot
-        implicitWidth: panelRow.implicitWidth + (Kirigami.Units.smallSpacing * 4)
-        implicitHeight: panelRow.implicitHeight
-        width: implicitWidth
-        height: implicitHeight
-        
-        // Essential for Plasma to allocate space and prevent overlap
-        Layout.minimumWidth: implicitWidth
-        Layout.preferredWidth: implicitWidth
-        
-        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
-        onClicked: (mouse) => {
-            if (mouse.button === Qt.MiddleButton) {
-                // Visual feedback: brief flicker
-                if (priceText) priceText.opacity = 0.3;
-                root.refreshData();
-                timerFlicker.restart();
-            } else {
-                root.expanded = !root.expanded;
-            }
-        }
-
-        Timer {
-            id: timerFlicker
-            interval: 300
-            onTriggered: if (priceText) priceText.opacity = 1.0;
-        }
-
-        RowLayout {
-            id: panelRow
-            anchors.centerIn: parent
-            spacing: 8
-            
-            ColumnLayout {
-                spacing: -2
-                Layout.alignment: Qt.AlignVCenter
-
-                RowLayout {
-                    spacing: 4
-                    Text {
-                        text: (root.isMultiMode ? root.panelTicker : root.singleTicker).toUpperCase()
-                        color:  Kirigami.Theme.textColor
-                        font.pixelSize: 9
-                        font.weight: Font.Bold
-                        opacity: 0.6
-                        Layout.alignment: Qt.AlignBottom
-                    }
-                    Text {
-                        text: root.isPositive ? "▲" : "▼"
-                        color: root.isPositive ? root.positiveColor : root.negativeColor
-                        font.pixelSize: 8
-                        font.weight: Font.Bold
-                    }
-                }
-
-                RowLayout {
-                    spacing: 6
-                    Layout.alignment: Qt.AlignLeft
-                    
-                    Text {
-                        text: root.currentPrice
-                        color: root.isPositive ? root.positiveColor : root.negativeColor
-                        font.pixelSize: 11
-                        font.weight: Font.Bold
-                        // Ensure the price text is fully opaque; color is controlled by the line above
-                        opacity: 1.0
-                    }
-
-                    Rectangle {
-                        radius: 4
-                        // Vertical Panel Support: Hide badge in vertical panels to avoid overlap
-                        visible: Plasmoid.formFactor !== PlasmaCore.Types.Vertical && !root.hideChangePercentage
-                        // Background: translucent tint of the positive/negative color for theme independence
-                        color: root.isPositive
-                               ? Qt.rgba(root.positiveColor.r, root.positiveColor.g, root.positiveColor.b, 0.18)
-                               : Qt.rgba(root.negativeColor.r, root.negativeColor.g, root.negativeColor.b, 0.18)
-                        border.color: root.isPositive ? root.positiveColor : root.negativeColor
-                        border.width: 1
-                        Layout.preferredWidth: pctText2.implicitWidth + (Kirigami.Units.smallSpacing * 2)
-                        Layout.preferredHeight: pctText2.implicitHeight + (Kirigami.Units.smallSpacing / 2)
-                        
-                        Text {
-                            id: pctText2
-                            anchors.centerIn: parent
-                            text: root.percentChange
-                            color: root.isPositive ? root.positiveColor : root.negativeColor
-                            font.pixelSize: 10
-                            font.weight: Font.Black
-                        }
-                    }
-                }
-            }
-        }
+    compactRepresentation: PanelView {
+        rootItem: root
     }
 
     // --- DESKTOP VIEW (Full Representation) ---
-
     fullRepresentation: Item {
         Layout.minimumWidth: root.showTwoList ? 380 : 190 // Leave room for both columns in multi mode
         Layout.minimumHeight: 170
-        // Layout.preferredWidth: 260
-        // Layout.preferredHeight: 300
 
         RowLayout {
             anchors.fill: parent
             anchors.margins: 10
             spacing: 10
             SingleStockView {
-                visible: !root.isMultiMode || root.showTwoList 
+                visible: !root.isMultiMode || root.showTwoList
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 rootItem: root
