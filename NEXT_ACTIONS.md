@@ -8,13 +8,14 @@
 - **Denetim:** 2026-10-17 · 50/100 (ilk kayıt)
 - **1. kontrol:** 2026-10-21 → T1, T2, T6, T9 kapandı
 - **2. tur:** 2026-11-06 → **T3, T4, T5, T7, T8 kapandı** + `configSearch.qml` injection düzeltmesi
-- **Kalan:** F1, F2, F3 (fonksiyonel backlog) → yeni task, vade 2026-11-20
+- **Kalan:** F1, F2, F3, F4 (fonksiyonel backlog) → yeni task `6aed7b6e8f080cb36f22ecc7`, vade 2026-11-20
 
 ## Referanslar
 - Ledger: `MASTER_PROJECT_LEDGER.md` → `### stock-monitor-widget-main`
 - Joplin not: Teknik Notlar (id: `363820acd03941259d15aca1d4aa5893`)
 - Kapanan task: `6ad3e0458f08baf7cbc4cadb` (21.10.2026)
 - Kapanan task: `6ad8aa9d8f086e43496918f9` (06.11.2026 — 2. tur)
+- Açık task: `6aed7b6e8f080cb36f22ecc7` (3. tur, vade 2026-11-20)
 - Blast radius: `stock-monitor-ff` (aynı widget'ın tarayıcı portu — aynı ölü Portfolio deseni hâlâ orada)
 
 ## 2026-11-06'DA KAPANANLAR
