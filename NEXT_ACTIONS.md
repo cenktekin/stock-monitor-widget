@@ -24,10 +24,10 @@
 | T3 | Portfolio Mode kararı | **Seçenek A** uygulandı: `showPortfolioMode` + `portfolioData` `main.qml`'de okunuyor, `updatePortfolioProfit()` → `(regularMarketPrice - averageCost) * shares` + yüzde. `SingleStockView`'da "P/L" satırı, pozitif/negatif renk mevcut desenle. Config sekmesi adı "Portfolio Tracking(WIP)" → "Portfolio" |
 | T4 | `processSingleData` ↔ `processListRow` kopyası | `extractChart(json, chartRange)` → `{cleanData, prevClose, meta}` tek kaynak. `chartPreviousClose > regularMarketPreviousClose > previousClose` önceliği **aynen korundu** (3. tekrar eden fix) |
 | T5 | `main.qml` bölme | 524 → **335 satır**. Yeni: `contents/js/DataFetcher.js` (XHR + parse), `contents/js/Formatter.js` (formatNumber, getCurrencySymbol), `contents/ui/PanelView.qml` (compact representation) |
-| T7 | QML doğrulama kapısı | `.github/workflows/ci.yml`: (1) `qmllint` — tüm `contents/**/*.qml`; (2) `kpackagetool6 --install` — `ubuntu:26.04` konteynerinde (24.04'te paket yok). `continue-on-error` yok |
+| T7 | QML doğrulama kapısı | `.github/workflows/ci.yml`: (1) `qmllint` — tüm `contents/**/*.qml` (Qt araçları `/usr/lib/qt6/bin`'de); (2) `kpackagetool6 --install` — `kpackagetool6` **+ plasma-desktoptheme** (KF6 `Plasma/Applet` yapısı o pakette; tek başına `kpackagetool6` "Package type not found" veriyor). `continue-on-error` yok |
 | EK | `configSearch.qml` rich-text injection | `"<b>" + model.name` kaldırıldı → `textFormat: Text.PlainText` |
 
-**Doğrulama:** `qmllint` yerelde (PySide6 6.9) → 0 error, yalnız `unqualified access` uyarıları (mevcut kod stili). `node --check` iki JS dosyasında temiz.
+**Doğrulama:** `qmllint` yerelde (PySide6 6.9) → 0 error, yalnız `unqualified access` uyarıları (mevcut kod stili). `node --check` iki JS dosyasında temiz. **CI canlı doğrulandı:** `49557e4` → run `42177834135` **success**; geçici `ci-verify-broken` dalında bilerek bozulmuş QML → run `42177996409` **failure** (yalnız QML lint işi kırmızı, paket işi yeşil kaldı), dal silindi.
 
 ## AÇIK — FONKSİYONEL BACKLOG (yeni task: vade 2026-11-20)
 | # | Kalem | Efor | Not |
