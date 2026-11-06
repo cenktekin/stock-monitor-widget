@@ -20,6 +20,9 @@ jobs:
 
       - name: qmllint
         run: |
+          # Qt ships its tools outside PATH on Debian/Ubuntu
+          export PATH="/usr/lib/qt6/bin:$PATH"
+          qmllint --version
           mapfile -t files < <(find contents -name '*.qml' -print | sort)
           printf '%s\n' "${files[@]}"
           qmllint "${files[@]}"
